@@ -1,0 +1,12 @@
+,*
+*.BIN
+*.OBJ
+*.PRN
+*.ERR
+*.MLC
+*.TRE
+*.LOG
+*.390
+*.LST
+my-output
+my-input
