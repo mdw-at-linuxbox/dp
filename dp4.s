@@ -84,7 +84,7 @@ op2 equ *
  ltr 15,15
  bz op3
  oi opidx,X'FF'
-op3 equ * 
+op3 equ *
  tm opidx,X'ff'
  bnz op71
  tm len1,X'ff'

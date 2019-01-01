@@ -18,7 +18,7 @@ pdc csect
 *  1=input - possible +-, then string of digits.
 * exit:
 *   15=4 if bad number
-*  or 
+*  or
 *   15=0
 *   0=len (bytes) of packed string.
 * reg usage:
