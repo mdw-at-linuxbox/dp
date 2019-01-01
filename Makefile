@@ -29,7 +29,7 @@ DP3.MLC: dp3.s update1.pl
 #
 #  d p 4
 #
-DP4.390: DP4.OBJ MVSIO.OBJ STR.OBJ DP4.LKD
+DP4.390: DP4.OBJ MVSIO.OBJ STR.OBJ PDC.OBJ DP4.LKD
 	MYLIB=. java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K lz390 DP4
 DP4.PRN DP4.OBJ: DP4.MLC
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 DP4 'SYSMAC(/home/mdw/src/z390/mac)'
@@ -46,3 +46,7 @@ STR.PRN STR.OBJ: STR.MLC
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 STR 'SYSMAC(/home/mdw/src/z390/mac)'
 STR.MLC: str.s update1.pl
 	perl update1.pl -par ,,,36 -uc str.s > STR.MLC
+PDC.PRN PDC.OBJ: PDC.MLC
+	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 PDC 'SYSMAC(/home/mdw/src/z390/mac)'
+PDC.MLC: pdc.s update1.pl
+	perl update1.pl -par ,,,36 -uc pdc.s > PDC.MLC
