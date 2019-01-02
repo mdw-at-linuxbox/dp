@@ -210,6 +210,7 @@ catint equ *
  lr 12,15
  getmain r,lv=ciwlen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using ciwork,13
 *

@@ -16,6 +16,7 @@ ioinit equ *
  using ioinit,12
  getmain r,lv=worklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using work,13
 *
@@ -43,6 +44,7 @@ scards equ *
  using scards,12
  getmain r,lv=worklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using work,13
 *
@@ -80,6 +82,7 @@ sprint equ *
  using sprint,12
  getmain r,lv=worklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using work,13
 *
@@ -109,6 +112,7 @@ spunch equ *
  using spunch,12
  getmain r,lv=worklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using work,13
 *
@@ -138,6 +142,7 @@ sercom equ *
  using sercom,12
  getmain r,lv=wtwklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using wtwork,13
 *
@@ -176,6 +181,7 @@ iofini equ *
  using iofini,12
  getmain r,lv=worklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using work,13
 *
