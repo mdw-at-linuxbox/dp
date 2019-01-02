@@ -1,9 +1,6 @@
 *
-* read in data
-* interpret operation
-* print result, cc.
-* do it again unmasked.
-* if exception, say what.
+* simulate mts-like environment using mvs primitives.
+* works with z390 java simulator (ez390)
 *
  entry ioinit,scards,sprint,spunch,iofini
  entry pgnttrp,sercom
