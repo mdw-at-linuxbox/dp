@@ -35,6 +35,7 @@ getpacked equ *
  lr 12,15
  getmain r,lv=gpwlen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using gpwork,13
 *
