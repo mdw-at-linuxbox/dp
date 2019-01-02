@@ -198,9 +198,40 @@ op76 equ *
  lr 1,0
  mvc 0(2,1),=C'  '
  b op90
+do79 mvi cc,c'0'
 op80 equ *
 *
-* eventually do operation here.  for now, just print some stuff.
+* do operation here.
+*
+ xr 4,4
+* bctr 4,0
+ spm 4
+ l 4,opidx
+ sll 4,1
+ lr 6,4
+ sll 4,1
+ ar 6,4
+ l 4,len1
+ st 4,len3
+ bctr 4,0
+ sll 4,4
+ l 5,len2
+ bctr 5,0
+ ar 4,5
+ mvc operand3(16),operand1
+ la 1,operand3
+ la 2,operand2
+ ex 4,extbl(6)
+ la 3,3
+ bc 5,do50
+ la 3,14(3)
+do50 equ *
+ bc 3,do55
+ la 3,15(3)
+do55 equ *
+ ex 3,do79
+*
+* print results
 *
  la 0,outline
  la 1,lab1
@@ -238,19 +269,16 @@ op80 equ *
  la 1,lab6
  l 15,=V(catstr)
  balr 14,15
- l 1,sw
- l 15,=V(catint)
+ la 1,operand3
+ l 2,len3
+ l 15,=V(cathex)
  balr 14,15
  la 1,lab7
  l 15,=V(catstr)
  balr 14,15
- la 1,sw
- la 2,4
- l 15,=V(cathex)
- balr 14,15
- la 1,lab8
- l 15,=V(catstr)
- balr 14,15
+ lr 1,0
+ mvc 0(1,1),cc
+ la 0,1(1)
 *
 * report results and loop
 *
@@ -384,16 +412,6 @@ dn30 equ *
  drop 12
  sr 15,15
  br 14
-*
-* table of operations.  will index with
-*  offset from operator found in optbl.
-*
-extbl ap 0(0,1),0(2)
- sp 0(0,1),0(2)
- mp 0(0,1),0(2)
- dp 0(0,1),0(2)
- zap 0(0,1),0(2)
- cp 0(0,1),0(2)
 ontrap equ *
 * XXX do something here.
  lpsw 0
@@ -404,15 +422,25 @@ zero dc f'0'
 inproto dc a(0,inlen,zero,lineno)
 outproto dc a(0,outlen,zero,lineno)
 catchit dc v(pgnttrp),a(ontrap,trapsave)
- ds 0d
+*
+* table of operations.  will index with
+*  offset from operator found in optbl.
+*
+extbl ap 0(1,1),0(1,2)
+ sp 0(1,1),0(1,2)
+ mp 0(1,1),0(1,2)
+ dp 0(1,1),0(1,2)
+ zap 0(1,1),0(1,2)
+ cp 0(1,1),0(1,2)
+* operations.  order must match extbl
+optbl dc c'+-*/=<',X'0'
 lab1 dc C'Arg1 is <',X'0'
 lab2 dc C'> arg2 <',X'0'
 lab3 dc C'> op <',X'0'
 lab4 dc C'> len=',X'0'
 lab5 dc C' idx=',X'0'
-lab6 dc C' sw=',X'0'
-lab7 dc C'(',X'0'
-lab8 dc C')',X'0'
+lab6 dc C' result=<',X'0'
+lab7 dc C'> cc=',X'0'
 badinp dc C'record ',X'0'
 badinp2 dc C' is bad, ',X'0'
 badoper0 dc C'operation is bad, <',X'0'
@@ -425,7 +453,6 @@ sum1a dc C' read'
 sum0 dc C', ',X'0'
 sum2 dc C' bad record',X'0'
 sum3 dc C' operation',X'0'
-optbl dc c'+-*/=<',X'0'
  ltorg
 work dsect
 dp1save ds 18f
@@ -456,5 +483,6 @@ opcount ds 1f
 countln equ *-counts
 scargs ds 4f
 spargs ds 4f
+cc ds 1c
 worklen equ *-work
  end dp4
