@@ -25,6 +25,7 @@ again2 equ *
  mvc scargs(16),inproto
  mvc spargs(16),outproto
  xc badflag,badflag
+ xc sw,sw
  l 15,=V(skipspc)
  balr 14,15
  cli 0(1),0
@@ -67,12 +68,12 @@ ag70 equ *
  bz ag60
  ic 2,0(1)
  n 2,=F'63'
- c 2,=X'20'
+ c 2,=F'32'
  bl ag74
  s 2,=F'8'
 ag74 equ *
- c 2,=F'10'
- bl ag76
+ c 2,=F'16'
+ bnh ag76
  s 2,=F'7'
 ag76 equ *
  la 3,1
@@ -87,7 +88,6 @@ ag95 equ *
 *
 * validate operation and operands
 *
- xc sw,sw
  oi badflag,7
  l 1,word1
  l 15,=v(strlen)
@@ -360,7 +360,6 @@ sum1 dc C' record(s) read, '
 sum2 dc C' bad records, '
 sum3 dc C' operations, '
 optbl dc c'+-*/=<',X'0'
-wt2 dc y(80,0)
  ltorg
 work dsect
 dp1save ds 18f
