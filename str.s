@@ -3,6 +3,7 @@
 * to parse input and generate output
 *
  entry skipspc,getword,catstr,strlen,catint,cathex,index
+ entry gethex
 str csect
  balr 15,0
  lpsw 0
@@ -53,6 +54,68 @@ gw85 equ *
  br 14
 gw90 mvc 0(0,2),0(3)
  drop 15
+ cnop 0,4
+*
+* get hex string
+* entry:
+*  0=output (sufficient size)
+*  1=input - string of hex digits, null terminated
+* exit:
+*   15=4 if bad number
+*  or
+*   15=0
+*   0=len (bytes) of converted string
+* reg usage,
+*  2 point to output string
+*  1 point to input string
+*  3 digit count
+*  4 byte count(-1)
+*  5 unpack len
+*
+gethex equ *
+ using *,15
+ stm 1,5,24(13)
+*
+ lr 2,0
+ xr 0,0
+ lr 3,1
+ la 4,1
+ b gh20
+gh10 equ *
+ ar 3,4
+gh20 tm 0(3),240
+ bnz gh10
+ s 3,24(13)
+ ar 4,3
+ srl 4,1
+ st 4,20(13)
+ stc 3,19(13)
+ tm 19(13),1
+ bz gh30
+ mvi 0(2),0
+ bctr 1,0
+ b gh40
+gh30 ic 5,0(1)
+ tm 0(1),240
+ bo gh35
+ a 5,=F'9'
+gh35 sll 5,4
+ stc 5,0(2)
+gh40 ic 5,1(1)
+ tm 1(1),240
+ bo gh45
+ a 5,=F'9'
+gh45 n 5,=F'15'
+ ex 5,gh95
+ la 1,2(1)
+ la 2,1(2)
+ bct 4,gh30
+*
+ lm 0,5,20(13)
+ drop 15
+ xr 15,15
+ br 14
+gh95 oi 0(2),0
  cnop 0,4
 *
 * copy (1) to (0)

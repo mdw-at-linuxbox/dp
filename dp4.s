@@ -89,25 +89,30 @@ ag95 equ *
 * validate operation and operands
 *
  oi badflag,7
+ l 6,=v(getpacked)
+ tm sw,1		-x switch
+ bz op10
+ l 6,=v(gethex)
+op10 equ *
  l 1,word1
  l 15,=v(strlen)
  balr 14,15
  c 0,=F'1'
- bnz op0
+ bnz op40
  ni badflag,-2
-op0 equ *
+op40 equ *
  l 1,word2
  la 0,operand1
- l 15,=v(getpacked)
+ lr 15,6
  balr 14,15
  ltr 15,15
- bnz op1
+ bnz op50
  ni badflag,-3
  st 0,len1
-op1 equ *
+op50 equ *
  l 1,word3
  la 0,operand2
- l 15,=v(getpacked)
+ lr 15,6
  balr 14,15
  ltr 15,15
  bnz op2
