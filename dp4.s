@@ -5,7 +5,6 @@
 * do it again unmasked.
 * if exception, say what.
 *
- rmode 24
 dp4 csect
  stm 14,12,12(13)
  lr 12,15
@@ -14,13 +13,18 @@ dp4 csect
  st 13,4(1)
  lr 13,1
  using work,13
+ xc counts(countln),counts
 *
  la 10,setup
- xr 9,9
 again equ *
+ xr 9,9
+again2 equ *
  balr 11,10
  ltr 1,9
  bz again
+ mvc scargs(16),inproto
+ mvc spargs(16),outproto
+ xc badflag,badflag
  l 15,=V(skipspc)
  balr 14,15
  cli 0(1),0
@@ -39,22 +43,58 @@ again equ *
  st 0,word3
  l 15,=V(getword)
  balr 14,15
- lr 1,9
+ l 15,=V(skipspc)
+ balr 14,15
+ st 0,word4
+ l 15,=V(getword)
+ balr 14,15
+ l 15,=V(skipspc)
+ balr 14,15
+ tm 0(1),X'ff'
+ bz ag90
+ oi badflag,128
+ag90 equ *
+ xr 0,0
+ xr 4,4
+ l 1,word4
+ b ag70
+ag60 equ *
+ la 1,1(1)
+ag70 equ *
+ cli 0(1),0
+ bz ag95
+ cli 0(1),C'-'
+ bz ag60
+ ic 2,0(1)
+ n 2,=F'63'
+ c 2,=X'20'
+ bl ag74
+ s 2,=F'8'
+ag74 equ *
+ c 2,=F'10'
+ bl ag76
+ s 2,=F'7'
+ag76 equ *
+ la 3,1
+ sll 3,0(2)
+ or 4,3
+ b ag60
+ag95 equ *
+ st 4,sw
 *
  mvi outline,C' '
  mvc outline+1(79),outline
 *
 * validate operation and operands
 *
- oi len1,X'FF'
- oi len2,X'FF'
- oi opidx,X'FF'
+ xc sw,sw
+ oi badflag,7
  l 1,word1
  l 15,=v(strlen)
  balr 14,15
  c 0,=F'1'
  bnz op0
- st 0,opidx
+ ni badflag,-2
 op0 equ *
  l 1,word2
  la 0,operand1
@@ -62,6 +102,7 @@ op0 equ *
  balr 14,15
  ltr 15,15
  bnz op1
+ ni badflag,-3
  st 0,len1
 op1 equ *
  l 1,word3
@@ -70,9 +111,10 @@ op1 equ *
  balr 14,15
  ltr 15,15
  bnz op2
+ ni badflag,-5
  st 0,len2
 op2 equ *
- tm opidx,X'ff'
+ tm badflag,1
  bnz op3
  l 1,word1
  ic 0,0(1)
@@ -83,22 +125,30 @@ op2 equ *
  st 0,opidx
  ltr 15,15
  bz op3
- oi opidx,X'FF'
+ oi badflag,1
 op3 equ *
- tm opidx,X'ff'
- bnz op71
- tm len1,X'ff'
- bnz op71
- tm len2,X'ff'
+ tm badflag,X'FF'
  bz op80
 *
 * report the bad news: bad operation or operands
 *
 op71 equ *
+ l 9,bdcount
+ a 9,=f'1'
+ st 9,bdcount
  la 7,badopers
  la 0,outline
- tm opidx,X'ff'
- bz op71a
+ la 1,badinp
+ l 15,=v(catstr)
+ balr 14,15
+ l 1,rcount
+ l 15,=V(catint)
+ balr 14,15
+ la 1,badinp2
+ l 15,=v(catstr)
+ balr 14,15
+ tm badflag,1
+ bz op73
  la 1,badoper0
  l 15,=v(catstr)
  balr 14,15
@@ -108,9 +158,9 @@ op71 equ *
  lr 1,7
  l 15,=v(catstr)
  balr 14,15
-op71a equ *
- tm len1,X'ff'
- bz op72
+op73 equ *
+ tm badflag,2
+ bz op74
  la 1,badoper1
  l 15,=v(catstr)
  balr 14,15
@@ -120,9 +170,9 @@ op71a equ *
  lr 1,7
  l 15,=v(catstr)
  balr 14,15
-op72 equ *
- tm len2,X'ff'
- bz op73
+op74 equ *
+ tm badflag,4
+ bz op75
  la 1,badoper2
  l 15,=v(catstr)
  balr 14,15
@@ -132,7 +182,13 @@ op72 equ *
  lr 1,7
  l 15,=v(catstr)
  balr 14,15
-op73 equ *
+op75 equ *
+ tm badflag,128
+ bz op76
+ la 1,badxtra
+ l 15,=v(catstr)
+ balr 14,15
+op76 equ *
  s 0,=F'2'
  lr 1,0
  mvc 0(2,1),=C'  '
@@ -174,14 +230,31 @@ op80 equ *
  l 1,opidx
  l 15,=V(catint)
  balr 14,15
+ la 1,lab6
+ l 15,=V(catstr)
+ balr 14,15
+ l 1,sw
+ l 15,=V(catint)
+ balr 14,15
+ la 1,lab7
+ l 15,=V(catstr)
+ balr 14,15
+ la 1,sw
+ la 2,4
+ l 15,=V(cathex)
+ balr 14,15
+ la 1,lab8
+ l 15,=V(catstr)
+ balr 14,15
 *
 * report results and loop
 *
 op90 equ *
- lr 1,0
- mvi 0(1),C' '
+ lr 8,0
+ mvi 0(8),C' '
  la 9,outline
- b again
+ sr 8,9
+ b again2
 *
 done equ *
  lr 1,13
@@ -210,6 +283,9 @@ setup equ *
  balr 14,15
  b set40
 set10 equ *
+ l 9,rcount
+ a 9,=f'1'
+ st 9,rcount
  la 9,inline
  balr 10,11
  ltr 9,9
@@ -236,10 +312,10 @@ set60 equ *
 set70 equ *
  la 1,spargs
  st 9,0(1)
- mvc wtorec+4(80),0(9)
- mvc wtorec(4),wt2
- la 1,wtorec
- wto mf=(E,(1))
+ st 8,outlen
+ l 15,=v(sercom)
+ balr 14,15
+*
  la 1,spargs
  l 15,=V(spunch)
  balr 14,15
@@ -261,8 +337,8 @@ inlen dc f'80'
 outlen dc f'80'
 lineno dc f'0'
 zero dc f'0'
-scargs call scards,(0,inlen,zero,lineno),mf=l
-spargs call spunch,(0,outlen,zero,lineno),mf=l
+inproto dc a(0,inlen,zero,lineno)
+outproto dc a(0,outlen,zero,lineno)
 catchit dc v(pgnttrp),a(ontrap,trapsave)
  ds 0d
 lab1 dc C'Arg1 is <',X'0'
@@ -270,10 +346,19 @@ lab2 dc C'> arg2 <',X'0'
 lab3 dc C'> op <',X'0'
 lab4 dc C'> len=',X'0'
 lab5 dc C' idx=',X'0'
+lab6 dc C' sw=',X'0'
+lab7 dc C'(',X'0'
+lab8 dc C')',X'0'
+badinp dc C'record ',X'0'
+badinp2 dc C' is bad, ',X'0'
 badoper0 dc C'operation is bad, <',X'0'
 badoper1 dc C'operand1 is bad, <',X'0'
 badopers dc C'>, ',X'0'
 badoper2 dc C'operand2 is bad, <',X'0'
+badxtra dc C'trailing garbage, ',X'0'
+sum1 dc C' record(s) read, '
+sum2 dc C' bad records, '
+sum3 dc C' operations, '
 optbl dc c'+-*/=<',X'0'
 wt2 dc y(80,0)
  ltorg
@@ -287,9 +372,11 @@ outline ds 81c
 word1 ds 1f
 word2 ds 1f
 word3 ds 1f
+word4 ds 1f
+sw ds 1f
+badflag ds 1f
 temp ds 81c
 trapsave ds 18f
-wtorec ds 1f,80c
 operand1 ds 16c
 opidx ds 1f
 len1 ds 1f
@@ -297,5 +384,12 @@ operand2 ds 16c
 len2 ds 1f
 operand3 ds 16c
 len3 ds 1f
+counts equ *
+rcount ds 1f
+bdcount ds 1f
+opcount ds 1f
+countln equ *-counts
+scargs ds 4f
+spargs ds 4f
 worklen equ *-work
  end dp4

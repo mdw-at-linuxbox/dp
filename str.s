@@ -26,9 +26,10 @@ skipspc equ *
 *
 getword equ *
  using *,15
- stm 2,3,28(13)
+ stm 2,4,28(13)
  lr 2,0
  lr 3,1
+ la 4,1
 gw10 equ *
  cli 0(1),0
  bz gw80
@@ -38,14 +39,16 @@ gw10 equ *
  b gw10
 gw80 equ *
  sr 1,3
- bctr 1,0
+ bnh gw85
+ sr 1,4
  ex 1,gw90
- la 1,1(1)
+ ar 1,4
+gw85 equ *
  ar 2,1
  ar 1,3
  mvi 0(2),0
  la 0,1(2)
- lm 2,3,28(13)
+ lm 2,4,28(13)
  xr 15,15
  br 14
 gw90 mvc 0(0,2),0(3)

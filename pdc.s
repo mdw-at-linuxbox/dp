@@ -5,7 +5,6 @@
 * do it again unmasked.
 * if exception, say what.
 *
- rmode 24
  entry getpacked
 pdc csect
  balr 15,0

@@ -5,9 +5,8 @@
 * do it again unmasked.
 * if exception, say what.
 *
- rmode 24
  entry ioinit,scards,sprint,spunch,iofini
- entry pgnttrp
+ entry pgnttrp,sercom
 mvsio csect
  balr 15,0
  lpsw 0
@@ -129,6 +128,49 @@ spunch equ *
  sr 15,15
  br 14
 *
+* tell operator
+* parm1 = buffer
+* parm2 = length
+* parm3 = modifiers (shoudd be zero, ignored)
+* parm4 = lineno (ignored)
+*
+sercom equ *
+ stm 14,12,12(13)
+ lr 12,15
+ lr 11,1
+ using sercom,12
+ getmain r,lv=wtwklen
+ st 13,4(1)
+ lr 13,1
+ using wtwork,13
+*
+ l 8,4(11)
+ lh 8,2(8)
+ l 9,0(11)
+ xc wtorec+2(2),wtorec+2
+ lr 7,8
+ la 7,4(7)
+ sth 7,wtorec
+ ltr 8,8
+ bz sr10
+ bctr 8,0
+ ex 8,sr90
+sr10 equ *
+ la 1,wtorec
+ wto mf=(E,(1))
+*
+ lr 1,13
+ l 13,wtsave+4
+ drop 13
+ freemain r,a=(1),lv=wtwklen
+ lm 14,12,12(13)
+ drop 12
+ sr 15,15
+ br 14
+ using wtwork,13
+sr90 mvc wtorec+4(0),0(9)
+ drop 13
+*
 * finish with io
 *
 iofini equ *
@@ -166,4 +208,8 @@ clslist close mf=l,(indcb,,pchdcb,)
 work dsect
 iosave ds 18f
 worklen equ *-work
+wtwork dsect
+wtsave ds 18f
+wtorec ds 1f,80c
+wtwklen equ *-work
  end
