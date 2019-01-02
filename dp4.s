@@ -1,4 +1,6 @@
 *
+* decimal arithmetic test driver
+*
 * read in data
 * interpret operation
 * print result, cc.
@@ -11,13 +13,16 @@ dp4 csect
  using dp4,12
  getmain r,lv=worklen
  st 13,4(1)
+ st 1,8(13)
  lr 13,1
  using work,13
  xc counts(countln),counts
+* 
+* get an input record, split it up
 *
  la 10,setup
 again equ *
- xr 9,9
+ xr 9,9	(nothing to print)
 again2 equ *
  balr 11,10
  ltr 1,9
@@ -31,27 +36,27 @@ again2 equ *
  cli 0(1),0
  bz again
  la 0,temp
- st 0,word1
+ st 0,word1	first word (operation)
  l 15,=V(getword)
  balr 14,15
  l 15,=V(skipspc)
  balr 14,15
- st 0,word2
+ st 0,word2	second word (operand1)
  l 15,=V(getword)
  balr 14,15
  l 15,=V(skipspc)
  balr 14,15
- st 0,word3
+ st 0,word3	third word (operand2)
  l 15,=V(getword)
  balr 14,15
  l 15,=V(skipspc)
  balr 14,15
- st 0,word4
+ st 0,word4	4th word (switches)
  l 15,=V(getword)
  balr 14,15
  l 15,=V(skipspc)
  balr 14,15
- tm 0(1),X'ff'
+ tm 0(1),X'ff'	and trailing garbage check
  bz ag90
  oi badflag,128
 ag90 equ *
@@ -61,7 +66,7 @@ ag90 equ *
  b ag70
 ag60 equ *
  la 1,1(1)
-ag70 equ *
+ag70 equ *	parse flags
  cli 0(1),0
  bz ag95
  cli 0(1),C'-'
@@ -87,20 +92,21 @@ ag95 equ *
  mvc outline+1(79),outline
 *
 * validate operation and operands
+* also parse operands and make them ready for use
 *
  l 6,=v(getpacked)
  tm sw,1		-x switch
- bz op10
- l 6,=v(gethex)
+ bz op10	means select alternate
+ l 6,=v(gethex)	operand conversion
 op10 equ *
- l 1,word1
+ l 1,word1	operation should be 1 char
  l 15,=v(strlen)
  balr 14,15
  c 0,=F'1'
  bz op40
  oi badflag,1
 op40 equ *
- l 1,word2
+ l 1,word2	check for operands way too big
  l 15,=v(strlen)
  balr 14,15
  c 0,=A(op3len)
@@ -117,7 +123,7 @@ op44 equ *
  tm badflag,64
  bnz op55
  oi badflag,6
- l 1,word2
+ l 1,word2	convert word2 -> operand1
  la 0,operand1
  lr 15,6
  balr 14,15
@@ -128,7 +134,7 @@ op44 equ *
  ni badflag,-3
  st 0,len1
 op50 equ *
- l 1,word3
+ l 1,word3	convert word3 -> operand2
  la 0,operand2
  lr 15,6
  balr 14,15
@@ -141,7 +147,7 @@ op50 equ *
 op55 equ *
  tm badflag,1
  bnz op60
- l 1,word1
+ l 1,word1	compute operation index
  ic 0,0(1)
  la 1,optbl
  l 15,=v(index)
@@ -155,6 +161,7 @@ op60 equ *
  tm badflag,X'FF'
  bz op80
 *
+* here when bad input line.
 * report the bad news: bad operation or operands
 *
  l 9,bdcount
@@ -162,7 +169,7 @@ op60 equ *
  st 9,bdcount
  la 7,badopers
  la 0,outline
- la 1,badinp
+ la 1,badinp	report input lineno
  l 15,=v(catstr)
  balr 14,15
  l 1,rcount
@@ -171,7 +178,7 @@ op60 equ *
  la 1,badinp2
  l 15,=v(catstr)
  balr 14,15
- tm badflag,1
+ tm badflag,1	bad operation?
  bz op71
  la 1,badoper0
  l 15,=v(catstr)
@@ -183,13 +190,13 @@ op60 equ *
  l 15,=v(catstr)
  balr 14,15
 op71 equ *
- tm badflag,64
+ tm badflag,64	operands way too big?
  bz op72
  la 1,badway2
  l 15,=v(catstr)
  balr 14,15
 op72 equ *
- tm badflag,2
+ tm badflag,2	operand1 bad?
  bz op74
  la 1,badoper1
  l 15,=v(catstr)
@@ -201,7 +208,7 @@ op72 equ *
  l 15,=v(catstr)
  balr 14,15
 op74 equ *
- tm badflag,4
+ tm badflag,4	operand2 bad?
  bz op75
  la 1,badoper2
  l 15,=v(catstr)
@@ -213,33 +220,33 @@ op74 equ *
  l 15,=v(catstr)
  balr 14,15
 op75 equ *
- tm badflag,128
+ tm badflag,128	trailing garbage?
  bz op76
  la 1,badxtra
  l 15,=v(catstr)
  balr 14,15
 op76 equ *
- s 0,=F'2'
+ s 0,=F'2'	erase redundant trailing comma
  lr 1,0
  mvc 0(2,1),=C'  '
  b op90
-do79 mvi cc,c'0'
-op80 equ *
+do79 mvi cc,c'0'	(ex target)
 *
 * do operation here.
 *
+op80 equ *
  l 9,opcount
  a 9,=f'1'
  st 9,opcount
- xr 4,4
+ xr 4,4	ignore what we can
 * bctr 4,0
  spm 4
- l 4,opidx
- sll 4,1
+ l 4,opidx	operation index
+ sll 4,1	times 6
  lr 6,4
  sll 4,1
  ar 6,4
- l 4,len1
+ l 4,len1	or len-1's together
  st 4,len3
  bctr 4,0
  sll 4,4
@@ -249,47 +256,47 @@ op80 equ *
  mvc operand3(op3len),operand1
  la 1,operand3
  la 2,operand2
- ex 4,extbl(6)
- la 3,3
+ ex 4,extbl(6)	do it!
+ la 3,3	format/save cc
  bc 5,do50
  la 3,14(3)
 do50 equ *
  bc 3,do55
  la 3,15(3)
 do55 equ *
- ex 3,do79
+ ex 3,do79	mvi cc,(c'0'|r3)
 *
-* print results
+* format results to print
 *
  la 0,outline
- la 1,lab1
+ la 1,lab1	operand1
  l 15,=V(catstr)
  balr 14,15
  la 1,operand1
  l 2,len1
  l 15,=V(cathex)
  balr 14,15
- la 1,lab2
+ la 1,lab2	operand2
  l 15,=V(catstr)
  balr 14,15
  la 1,operand2
  l 2,len2
  l 15,=V(cathex)
  balr 14,15
- la 1,lab3
+ la 1,lab3	operation
  l 15,=V(catstr)
  balr 14,15
  l 1,word1
  l 15,=V(catstr)
  balr 14,15
- la 1,lab6
+ la 1,lab6	operand3
  l 15,=V(catstr)
  balr 14,15
  la 1,operand3
  l 2,len3
  l 15,=V(cathex)
  balr 14,15
- la 1,lab7
+ la 1,lab7	cc
  l 15,=V(catstr)
  balr 14,15
  lr 1,0
@@ -300,9 +307,9 @@ do55 equ *
 * report results and loop
 *
 op90 equ *
+ la 9,outline	have something to print
  lr 8,0
  mvi 0(8),C' '
- la 9,outline
  sr 8,9
  b again2
 *
@@ -315,24 +322,22 @@ op90 equ *
 * 6. on re-entry, capture and print results.
 *
 setup equ *
- using dp4,12
- using work,13
  l 15,=V(ioinit)
  balr 14,15
  lm 15,1,catchit
  balr 14,15
  b set40
 set10 equ *
- l 9,rcount
+ l 9,rcount	got a record
  a 9,=f'1'
  st 9,rcount
  la 9,inline
- balr 10,11
+ balr 10,11	switch up with caller
  ltr 9,9
  bz set40
- bal 6,set70
+ bal 6,set70	show some results
 set40 equ *
- la 1,scargs
+ la 1,scargs	fetch input
  la 2,inline
  st 2,0(1)
  l 15,=V(scards)
@@ -340,11 +345,15 @@ set40 equ *
  mvi inline+80,0
  ltr 15,15
  bz set10
- xr 9,9
- balr 10,11
+* error (EOF?) on input, so finalize
+ xr 9,9		indicate no input
+ balr 10,11	switch up with caller
  ltr 9,9
  bz done
- bal 6,set70
+ bal 6,set70	show any final results
+*
+* logic to punch results.
+*
 set70 equ *
  la 1,spargs
  st 9,0(1)
@@ -361,7 +370,7 @@ set70 equ *
 *
 done equ *
  la 0,outline
- l 1,rcount
+ l 1,rcount	number records read
  l 15,=V(catint)
  balr 14,15
  la 1,sum1
@@ -377,7 +386,7 @@ dn10 equ *
  la 1,sum1a
  l 15,=V(catstr)
  balr 14,15
- l 1,bdcount
+ l 1,bdcount	bad records
  l 15,=V(catint)
  balr 14,15
  la 1,sum2
@@ -392,7 +401,7 @@ dn20 equ *
  la 1,sum0
  l 15,=V(catstr)
  balr 14,15
- l 1,opcount
+ l 1,opcount	operation cound
  l 15,=V(catint)
  balr 14,15
  la 1,sum3
@@ -407,7 +416,7 @@ dn30 equ *
  la 1,sum0
  l 15,=V(catstr)
  balr 14,15
- l 1,excount
+ l 1,excount	exception count
  l 15,=V(catint)
  balr 14,15
  la 1,sum4
@@ -423,10 +432,10 @@ dn40 equ *
  l 15,=V(catstr)
  balr 14,15
  lr 8,0
- s 8,=F'2'
+ s 8,=F'2'	ignore trailing ", "
  la 9,outline
  sr 8,9
- la 1,spargs
+ la 1,spargs	send to console
  st 9,0(1)
  st 8,outlen
  l 15,=v(sercom)
@@ -466,6 +475,7 @@ extbl ap 0(1,1),0(1,2)
  cp 0(1,1),0(1,2)
 * operations.  order must match extbl
 optbl dc c'+-*/=<',X'0'
+*
 lab1 dc C'a1=',X'0'
 lab2 dc C' a2=',X'0'
 lab3 dc C' op=',X'0'
@@ -486,6 +496,9 @@ sum2 dc C' bad record',X'0'
 sum3 dc C' operation',X'0'
 sum4 dc C' exception',X'0'
  ltorg
+*
+* working storage (impure)
+*
 work dsect
 dp1save ds 18f
  ds 1f
