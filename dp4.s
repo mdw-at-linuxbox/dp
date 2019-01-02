@@ -88,7 +88,6 @@ ag95 equ *
 *
 * validate operation and operands
 *
- oi badflag,7
  l 6,=v(getpacked)
  tm sw,1		-x switch
  bz op10
@@ -98,15 +97,34 @@ op10 equ *
  l 15,=v(strlen)
  balr 14,15
  c 0,=F'1'
- bnz op40
- ni badflag,-2
+ bz op40
+ oi badflag,1
 op40 equ *
+ l 1,word2
+ l 15,=v(strlen)
+ balr 14,15
+ c 0,=A(op3len)
+ bl op42
+ oi badflag,64+2
+op42 equ *
+ l 1,word3
+ l 15,=v(strlen)
+ balr 14,15
+ c 0,=A(op3len)
+ bl op44
+ oi badflag,64+4
+op44 equ *
+ tm badflag,64
+ bnz op55
+ oi badflag,6
  l 1,word2
  la 0,operand1
  lr 15,6
  balr 14,15
  ltr 15,15
  bnz op50
+ c 0,=f'8'
+ bh op50
  ni badflag,-3
  st 0,len1
 op50 equ *
@@ -115,12 +133,14 @@ op50 equ *
  lr 15,6
  balr 14,15
  ltr 15,15
- bnz op2
+ bnz op55
+ c 0,=f'8'
+ bh op55
  ni badflag,-5
  st 0,len2
-op2 equ *
+op55 equ *
  tm badflag,1
- bnz op3
+ bnz op60
  l 1,word1
  ic 0,0(1)
  la 1,optbl
@@ -129,15 +149,14 @@ op2 equ *
  sr 0,1
  st 0,opidx
  ltr 15,15
- bz op3
+ bz op60
  oi badflag,1
-op3 equ *
+op60 equ *
  tm badflag,X'FF'
  bz op80
 *
 * report the bad news: bad operation or operands
 *
-op71 equ *
  l 9,bdcount
  a 9,=f'1'
  st 9,bdcount
@@ -153,7 +172,7 @@ op71 equ *
  l 15,=v(catstr)
  balr 14,15
  tm badflag,1
- bz op73
+ bz op71
  la 1,badoper0
  l 15,=v(catstr)
  balr 14,15
@@ -163,7 +182,13 @@ op71 equ *
  lr 1,7
  l 15,=v(catstr)
  balr 14,15
-op73 equ *
+op71 equ *
+ tm badflag,64
+ bz op72
+ la 1,badway2
+ l 15,=v(catstr)
+ balr 14,15
+op72 equ *
  tm badflag,2
  bz op74
  la 1,badoper1
@@ -203,6 +228,9 @@ op80 equ *
 *
 * do operation here.
 *
+ l 9,opcount
+ a 9,=f'1'
+ st 9,opcount
  xr 4,4
 * bctr 4,0
  spm 4
@@ -218,7 +246,7 @@ op80 equ *
  l 5,len2
  bctr 5,0
  ar 4,5
- mvc operand3(16),operand1
+ mvc operand3(op3len),operand1
  la 1,operand3
  la 2,operand2
  ex 4,extbl(6)
@@ -254,18 +282,6 @@ do55 equ *
  l 1,word1
  l 15,=V(catstr)
  balr 14,15
- la 1,lab4
- l 15,=V(catstr)
- balr 14,15
- l 1,len2
- l 15,=V(catint)
- balr 14,15
- la 1,lab5
- l 15,=V(catstr)
- balr 14,15
- l 1,opidx
- l 15,=V(catint)
- balr 14,15
  la 1,lab6
  l 15,=V(catstr)
  balr 14,15
@@ -278,6 +294,7 @@ do55 equ *
  balr 14,15
  lr 1,0
  mvc 0(1,1),cc
+ mvi 1(1),0
  la 0,1(1)
 *
 * report results and loop
@@ -390,6 +407,21 @@ dn30 equ *
  la 1,sum0
  l 15,=V(catstr)
  balr 14,15
+ l 1,excount
+ l 15,=V(catint)
+ balr 14,15
+ la 1,sum4
+ l 15,=V(catstr)
+ balr 14,15
+ c 6,excount
+ bz dn40
+ lr 1,0
+ mvi 0(1),C's'
+ ar 0,6
+dn40 equ *
+ la 1,sum0
+ l 15,=V(catstr)
+ balr 14,15
  lr 8,0
  s 8,=F'2'
  la 9,outline
@@ -434,15 +466,14 @@ extbl ap 0(1,1),0(1,2)
  cp 0(1,1),0(1,2)
 * operations.  order must match extbl
 optbl dc c'+-*/=<',X'0'
-lab1 dc C'Arg1 is <',X'0'
-lab2 dc C'> arg2 <',X'0'
-lab3 dc C'> op <',X'0'
-lab4 dc C'> len=',X'0'
-lab5 dc C' idx=',X'0'
-lab6 dc C' result=<',X'0'
-lab7 dc C'> cc=',X'0'
+lab1 dc C'a1=',X'0'
+lab2 dc C' a2=',X'0'
+lab3 dc C' op=',X'0'
+lab6 dc C' r=',X'0'
+lab7 dc C' cc=',X'0'
 badinp dc C'record ',X'0'
 badinp2 dc C' is bad, ',X'0'
+badway2 dc C'operand too big, ',X'0'
 badoper0 dc C'operation is bad, <',X'0'
 badoper1 dc C'operand1 is bad, <',X'0'
 badopers dc C'>, ',X'0'
@@ -453,6 +484,7 @@ sum1a dc C' read'
 sum0 dc C', ',X'0'
 sum2 dc C' bad record',X'0'
 sum3 dc C' operation',X'0'
+sum4 dc C' exception',X'0'
  ltorg
 work dsect
 dp1save ds 18f
@@ -469,20 +501,22 @@ sw ds 1f
 badflag ds 1f
 temp ds 81c
 trapsave ds 18f
-operand1 ds 16c
+operand1 ds 20c
 opidx ds 1f
 len1 ds 1f
-operand2 ds 16c
+operand2 ds 20c
 len2 ds 1f
-operand3 ds 16c
+operand3 ds 20c
+op3len equ *-operand3
 len3 ds 1f
 counts equ *
 rcount ds 1f
 bdcount ds 1f
 opcount ds 1f
+excount ds 1f
 countln equ *-counts
 scargs ds 4f
 spargs ds 4f
 cc ds 1c
 worklen equ *-work
- end dp4
+ end
