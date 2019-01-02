@@ -256,16 +256,6 @@ op90 equ *
  sr 8,9
  b again2
 *
-done equ *
- lr 1,13
- l 13,dp1save+4
- drop 13
- freemain r,a=(1),lv=worklen
- lm 14,12,12(13)
- drop 12
- sr 15,15
- br 14
-*
 * co-routine
 * 1. fetch data
 * 2. return with program mask clear.
@@ -303,12 +293,8 @@ set40 equ *
  xr 9,9
  balr 10,11
  ltr 9,9
- bz set60
+ bz done
  bal 6,set70
-set60 equ *
- l 15,=V(iofini)
- balr 14,15
- b done
 set70 equ *
  la 1,spargs
  st 9,0(1)
@@ -320,6 +306,79 @@ set70 equ *
  l 15,=V(spunch)
  balr 14,15
  br 6
+*
+* report summary
+*
+done equ *
+ la 0,outline
+ l 1,rcount
+ l 15,=V(catint)
+ balr 14,15
+ la 1,sum1
+ l 15,=V(catstr)
+ balr 14,15
+ la 6,1
+ c 6,rcount
+ bz dn10
+ lr 1,0
+ mvi 0(1),C's'
+ ar 0,6
+dn10 equ *
+ la 1,sum1a
+ l 15,=V(catstr)
+ balr 14,15
+ l 1,bdcount
+ l 15,=V(catint)
+ balr 14,15
+ la 1,sum2
+ l 15,=V(catstr)
+ balr 14,15
+ c 6,bdcount
+ bz dn20
+ lr 1,0
+ mvi 0(1),C's'
+ ar 0,6
+dn20 equ *
+ la 1,sum0
+ l 15,=V(catstr)
+ balr 14,15
+ l 1,opcount
+ l 15,=V(catint)
+ balr 14,15
+ la 1,sum3
+ l 15,=V(catstr)
+ balr 14,15
+ c 6,opcount
+ bz dn30
+ lr 1,0
+ mvi 0(1),C's'
+ ar 0,6
+dn30 equ *
+ la 1,sum0
+ l 15,=V(catstr)
+ balr 14,15
+ lr 8,0
+ s 8,=F'2'
+ la 9,outline
+ sr 8,9
+ la 1,spargs
+ st 9,0(1)
+ st 8,outlen
+ l 15,=v(sercom)
+ balr 14,15
+*
+* and finish up
+*
+ l 15,=V(iofini)
+ balr 14,15
+ lr 1,13
+ l 13,dp1save+4
+ drop 13
+ freemain r,a=(1),lv=worklen
+ lm 14,12,12(13)
+ drop 12
+ sr 15,15
+ br 14
 *
 * table of operations.  will index with
 *  offset from operator found in optbl.
@@ -356,9 +415,11 @@ badoper1 dc C'operand1 is bad, <',X'0'
 badopers dc C'>, ',X'0'
 badoper2 dc C'operand2 is bad, <',X'0'
 badxtra dc C'trailing garbage, ',X'0'
-sum1 dc C' record(s) read, '
-sum2 dc C' bad records, '
-sum3 dc C' operations, '
+sum1 dc C' record',X'0'
+sum1a dc C' read'
+sum0 dc C', ',X'0'
+sum2 dc C' bad record',X'0'
+sum3 dc C' operation',X'0'
 optbl dc c'+-*/=<',X'0'
  ltorg
 work dsect
