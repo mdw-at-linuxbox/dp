@@ -215,11 +215,13 @@ pgnttrp equ *
  tm 0(15),x'ff'
  bno pt10
  la 1,finpi
- espie set,(1),(6),param=(15)
+ espie set,(1),(7),param=(15)
  bcr 0,1
  bcr 0,1
  bcr 0,1
- dr 15,15	should do spec exception
+* dr 15,15	should do spec exception
+* but actually breaks ez390 espi handler 
+ cp bd1(1),bd1
  dc y(0)	survived? die die die
 pt10 equ *
  ltr 0,0
@@ -236,6 +238,7 @@ pt70 equ *
  drop 3
  sr 15,15
  br 14
+bd1 dc x'ffff'
  ds 0f
 *
 * here when trap fires
