@@ -254,9 +254,14 @@ op80 equ *
  bctr 5,0
  ar 4,5
  mvc operand3(op3len),operand1
+ mvi trapflag+3,255
+ lm 15,0,catproto	prepare to trap exceptions
+ la 1,trapsave
+ balr 14,15
  la 1,operand3
  la 2,operand2
  ex 4,extbl(6)	do it!
+do10 equ *
  la 3,3	format/save cc
  bc 5,do50
  la 3,14(3)
@@ -265,6 +270,15 @@ do50 equ *
  la 3,15(3)
 do55 equ *
  ex 3,do79	mvi cc,(c'0'|r3)
+ l 15,catproto	=v(pgnttrp) cancel trap
+ xr 0,0
+ balr 14,15
+ tm trapflag+3,255	count exceptions
+ bo do60
+ l 9,excount
+ a 9,=f'1'
+ st 9,excount
+do60 equ *
 *
 * format results to print
 *
@@ -323,9 +337,6 @@ op90 equ *
 *
 setup equ *
  l 15,=V(ioinit)
- balr 14,15
- lm 15,0,catproto
- la 1,trapsave
  balr 14,15
  b set40
 set10 equ *
@@ -454,9 +465,38 @@ dn40 equ *
  drop 12
  sr 15,15
  br 14
+*
+* trap program interrupts from decimal instruction here
+* 15 = here.
+* 14 = exit to default action (failure).
+* 1=trapsave
+* (if saved psw is EC, 2 contains ilc,intcode, 3 could have dxd)
+* for z390: careful!  returns EC mode psw, and returns WRONG iar.
+*
 ontrap equ *
-* XXX do something here.
- lpsw 0
+ using *,15
+ l 12,=a(dp4)	recover our base address
+ drop 15
+ using dp4,12
+ lr 13,1	and work
+ s 13,=a(trapsave-work)
+ using work,13
+ stm 1,3,trapflag
+ lr 2,1	copy trap'd registers
+ la 1,traprest
+ mvc 0(72,1),0(2)
+ lm 15,0,catproto	prepare to return
+ tm 1(1),8	EC bit set?
+ bz ot30
+ lr 2,15	then force return addr
+ s 2,=a(ontrap-do10)
+ st 2,4(1)
+ xr 0,0	and don't re-enable trap
+ot30 equ *
+ mvi 0(1),x'ff'	flag to resume exec
+ balr 14,15
+ dc y(0)	should never reach
+*
 inlen dc f'80'
 outlen dc f'80'
 lineno dc f'0'
@@ -514,7 +554,9 @@ word4 ds 1f
 sw ds 1f
 badflag ds 1f
 temp ds 81c
+trapflag ds 3f
 trapsave ds 18f
+traprest ds 18f
 operand1 ds 20c
 opidx ds 1f
 len1 ds 1f
