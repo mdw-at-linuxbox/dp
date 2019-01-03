@@ -17,7 +17,7 @@ dp4 csect
  lr 13,1
  using work,13
  xc counts(countln),counts
-* 
+*
 * get an input record, split it up
 *
  la 10,setup
@@ -239,7 +239,7 @@ op80 equ *
  a 9,=f'1'
  st 9,opcount
  xr 4,4	ignore what we can
-* bctr 4,0
+ bctr 4,0
  spm 4
  l 4,opidx	operation index
  sll 4,1	times 6
@@ -324,7 +324,8 @@ op90 equ *
 setup equ *
  l 15,=V(ioinit)
  balr 14,15
- lm 15,1,catchit
+ lm 15,0,catproto
+ la 1,trapsave
  balr 14,15
  b set40
 set10 equ *
@@ -462,7 +463,7 @@ lineno dc f'0'
 zero dc f'0'
 inproto dc a(0,inlen,zero,lineno)
 outproto dc a(0,outlen,zero,lineno)
-catchit dc v(pgnttrp),a(ontrap,trapsave)
+catproto dc v(pgnttrp),a(ontrap)
 *
 * table of operations.  will index with
 *  offset from operator found in optbl.

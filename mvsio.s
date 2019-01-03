@@ -2,6 +2,8 @@
 * simulate mts-like environment using mvs primitives.
 * works with z390 java simulator (ez390)
 *
+ ihaepie
+*
  entry ioinit,scards,sprint,spunch,iofini
  entry pgnttrp,sercom
 mvsio csect
@@ -196,10 +198,70 @@ iofini equ *
  sr 15,15
  br 14
 *
-* catch pgm traps
+* mts primitive to trap program interrupts
+* on entry,
+* 0 = handler
+* 1 = save area
+* if handler is 0 that means reset trap
+* if first byte of save area is FF that
+* means load context & resume.
 *
 pgnttrp equ *
+ using *,3
+*
+ stm 14,3,12(13)
+ lr 3,15
+ tm 0(1),x'ff'
+ bno pt10
+ dc y(0)	don't know how to resume yet
+pt10 equ *
+ ltr 0,0
+ bnz pt20
+ espie reset,,
+pt20 equ *
+ lr 15,1
+ st 0,4(15)	stuff handler somewhere
+ la 1,onpgmint
+ espie set,(1),((6,11)),param=(15)
+*
+pt70 equ *
+ lm 14,3,12(13)
+ drop 3
+ sr 15,15
  br 14
+ ds 0f
+*
+* here when trap fires
+*  mts rewrites psw in bc form.  that won't work here.
+*
+onpgmint equ *
+ using *,15
+ using epie,1
+ l 2,epieparm	2 user parm
+ using ptargs,2
+ xr 3,3
+ l 6,ptpsw+4
+ la 4,ptgprs	save user state
+ la 5,16
+ mvc ptpsw(8),epiepsw	psw,
+pi10 equ *
+ l 0,epieg64+4(3)	registers
+ st 0,0(4)
+ la 3,8(3)
+ la 4,4(4)
+ bct 5,pi10
+ st 6,epienxt1	vector here
+ st 6,epieg6415+4	with r15=epa
+ la 0,diehere	die if it returns
+ st 0,epieg6414+4
+ st 2,epieg6401+4	give it r1=user arg
+ espie reset,,
+ drop 15
+ xr 15,15
+ br 14
+ drop 1
+diehere lpsw 0
+*
 indcb dcb dsorg=ps,macrf=(pm),ddname=sysin,recfm=fba,lrecl=80,eodad=ineof
 outdcb dcb dsorg=ps,macrf=(pm),ddname=sysout,recfm=fba,lrecl=133
 pchdcb dcb dsorg=ps,macrf=(pm),ddname=syspch,recfm=fba,lrecl=80
@@ -215,4 +277,8 @@ wtwork dsect
 wtsave ds 18f
 wtorec ds 1f,80c
 wtwklen equ *-work
+ptargs dsect
+ptpsw ds 2f
+ptgprs ds 16f
+pgargsln equ *-ptargs
  end
