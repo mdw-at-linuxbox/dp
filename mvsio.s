@@ -218,6 +218,7 @@ pt10 equ *
  ltr 0,0
  bnz pt20
  espie reset,,
+ b pt70
 pt20 equ *
  lr 15,1
  st 0,4(15)	stuff handler somewhere
@@ -233,6 +234,8 @@ pt70 equ *
 *
 * here when trap fires
 *  mts rewrites psw in bc form.  that won't work here.
+*  so, if we return an ec format pc, our caller will
+*  need to know to look in R2-R3 for the intcode.
 *
 onpgmint equ *
  using *,15
@@ -255,6 +258,9 @@ pi10 equ *
  la 0,diehere	die if it returns
  st 0,epieg6414+4
  st 2,epieg6401+4	give it r1=user arg
+ lm 2,3,epieint	fetch ilc inc1 and dxd.
+ st 2,epieg6402+4	mts says don't care
+ st 3,epieg6403+4	so it's fair game
  espie reset,,
  drop 15
  xr 15,15
