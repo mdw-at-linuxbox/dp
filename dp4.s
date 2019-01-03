@@ -488,9 +488,7 @@ ontrap equ *
  lm 15,0,catproto	prepare to return
  tm 1(1),8	EC bit set?
  bz ot30
- lr 2,15	then force return addr
- s 2,=a(ontrap-do10)
- st 2,4(1)
+ mvc 4(4,1),=a(do10)	force ret addr
  xr 0,0	and don't re-enable trap
 ot30 equ *
  mvi 0(1),x'ff'	flag to resume exec

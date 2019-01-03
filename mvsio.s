@@ -211,16 +211,22 @@ pgnttrp equ *
 *
  stm 14,3,12(13)
  lr 3,15
- tm 0(1),x'ff'
+ lr 15,1
+ tm 0(15),x'ff'
  bno pt10
- dc y(0)	don't know how to resume yet
+ la 1,finpi
+ espie set,(1),(6),param=(15)
+ bcr 0,1
+ bcr 0,1
+ bcr 0,1
+ dr 15,15	should do spec exception
+ dc y(0)	survived? die die die
 pt10 equ *
  ltr 0,0
  bnz pt20
  espie reset,,
  b pt70
 pt20 equ *
- lr 15,1
  st 0,4(15)	stuff handler somewhere
  la 1,onpgmint
  espie set,(1),((6,11)),param=(15)
@@ -266,7 +272,42 @@ pi10 equ *
  xr 15,15
  br 14
  drop 1
-diehere lpsw 0
+ drop 2
+diehere equ *
+ dc y(0)	return here to die
+ bcr 0,0
+ bcr 0,0
+ bcr 0,0
+ bcr 0,0
+ bcr 0,0
+*
+* here to resume after 2nd trap
+*
+finpi equ *
+ using *,15
+ bcr 0,15
+ bcr 0,15
+ bcr 0,15
+ using epie,1
+ l 2,epieparm	2 user parm
+ using ptargs,2
+ xr 3,3
+ la 4,ptgprs	restore user state
+ la 5,16
+fn10 equ *
+ l 0,0(4)	registers
+ st 0,epieg64+4(3)
+ la 3,8(3)
+ la 4,4(4)
+ bct 5,fn10
+ mvc epiepsw(8),ptpsw
+ mvi epiepsw,7	fixup first byte
+ espie reset,,
+ drop 15
+ xr 15,15
+ br 14
+ drop 1
+ drop 2
 *
 indcb dcb dsorg=ps,macrf=(pm),ddname=sysin,recfm=fba,lrecl=80,eodad=ineof
 outdcb dcb dsorg=ps,macrf=(pm),ddname=sysout,recfm=fba,lrecl=133
