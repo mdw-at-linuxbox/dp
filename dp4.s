@@ -87,6 +87,8 @@ ag76 equ *
  b ag60
 ag95 equ *
  st 4,sw
+ mvi guard1,x'a5'
+ mvc guard1+1(guardlen-1),guard1
 *
  mvi outline,C' '
  mvc outline+1(79),outline
@@ -97,7 +99,7 @@ ag95 equ *
  l 6,=v(getpacked)
  tm sw,1		-x switch
  bz op10	means select alternate
- l 6,=v(gethex)	operand conversion
+ l 6,=v(gethexst)	operand conversion
 op10 equ *
  l 1,word1	operation should be 1 char
  l 15,=v(strlen)
@@ -226,9 +228,9 @@ op75 equ *
  l 15,=v(catstr)
  balr 14,15
 op76 equ *
- s 0,=F'2'	erase redundant trailing comma
+ s 0,=F'2'	erase redundant trailing comma and nul
  lr 1,0
- mvc 0(2,1),=C'  '
+ mvc 0(3,1),=C'   '
  b op90
 do79 mvi cc,c'0'	(ex target)
 *
@@ -288,14 +290,14 @@ do60 equ *
  balr 14,15
  la 1,operand1
  l 2,len1
- l 15,=V(cathex)
+ l 15,=V(cathexst)
  balr 14,15
  la 1,lab2	operand2
  l 15,=V(catstr)
  balr 14,15
  la 1,operand2
  l 2,len2
- l 15,=V(cathex)
+ l 15,=V(cathexst)
  balr 14,15
  la 1,lab3	operation
  l 15,=V(catstr)
@@ -308,7 +310,7 @@ do60 equ *
  balr 14,15
  la 1,operand3
  l 2,len3
- l 15,=V(cathex)
+ l 15,=V(cathexst)
  balr 14,15
  la 1,lab7	cc
  l 15,=V(catstr)
@@ -555,14 +557,19 @@ temp ds 81c
 trapflag ds 3f
 trapsave ds 18f
 traprest ds 18f
-operand1 ds 20c
 opidx ds 1f
 len1 ds 1f
-operand2 ds 20c
 len2 ds 1f
-operand3 ds 20c
-op3len equ *-operand3
 len3 ds 1f
+guard1 ds 1f
+operand1 ds 20c
+guard2 ds 1f
+operand2 ds 20c
+guard3 ds 1f
+operand3 ds 20c
+guard4 ds 1f
+guardlen equ *-guard1
+op3len equ *-operand3
 counts equ *
 rcount ds 1f
 bdcount ds 1f
