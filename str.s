@@ -208,7 +208,10 @@ catint equ *
  using *,12
  stm 14,12,12(13)
  lr 12,15
- getmain r,lv=ciwlen
+ la 1,ciwlen
+ la 0,3
+ l 15,=v(getspace)
+ balr 14,15
  st 13,4(1)
  st 1,8(13)
  lr 13,1
@@ -242,10 +245,12 @@ ci30 equ *
  sr 2,3
  st 2,20(4)
 *
- lr 1,13
+ lr 0,13
  l 13,cisave+4
  drop 13
- freemain r,a=(1),lv=ciwlen
+ la 1,ciwlen
+ l 15,=v(freespace)
+ balr 14,15
  lm 14,12,12(13)
  drop 12
  xr 15,15

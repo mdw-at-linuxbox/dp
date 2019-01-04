@@ -1,11 +1,11 @@
 *
-* simulate mts-like environment using mvs primitives.
+* simulate mts-like environment using mvs-like primitives.
 * works with z390 java simulator (ez390)
 *
  ihaepie
 *
  entry ioinit,scards,sprint,spunch,iofini
- entry pgnttrp,sercom
+ entry pgnttrp,sercom,getspace,freespace
 mvsio csect
 *
 * entry point
@@ -37,6 +37,44 @@ mvsio csect
  br 14
  cnop 0,4
 *
+* getspace
+*pass:
+* 0=switches
+* 1=length
+*return:
+* on success,
+*  r15=0
+*  r1=addr (r1)=len
+* on failure,
+*  r15=4
+*
+getspace ds 0d
+ using *,15
+ getmain r,lv=(1)
+ ltr 15,15
+ bner 14
+ st 0,0(1)
+ br 14
+ drop 15
+ cnop 0,4
+*
+* freespace
+* pass:
+*  0=len
+*  1=loc
+* returns:
+*  r15=0 | 4
+*
+freespace ds 0d
+ using *,15
+ xr 0,1
+ xr 1,0
+ xr 0,1
+ freemain r,a=(1),lv=(0)
+ br 14
+ drop 15
+ cnop 0,4
+*
 * initialize io units
 *
 ioinit ds 0d
@@ -57,7 +95,7 @@ ioinit ds 0d
  freemain r,a=(1),lv=worklen
  lm 14,12,12(13)
  drop 12
- sr 15,15
+ xr 15,15
  br 14
  cnop 0,4
 *
@@ -81,7 +119,7 @@ scards ds 0d
  la 1,indcb
  l 0,0(11)
  get (1),(0)
- sr 15,15
+ xr 15,15
 *
 sc10 equ *
  lr 1,13
@@ -127,7 +165,7 @@ sprint ds 0d
  freemain r,a=(1),lv=worklen
  lm 14,12,12(13)
  drop 12
- sr 15,15
+ xr 15,15
  br 14
  cnop 0,4
 *
@@ -158,7 +196,7 @@ spunch ds 0d
  freemain r,a=(1),lv=worklen
  lm 14,12,12(13)
  drop 12
- sr 15,15
+ xr 15,15
  br 14
  cnop 0,4
 *
@@ -200,7 +238,7 @@ sr10 equ *
  freemain r,a=(1),lv=wtwklen
  lm 14,12,12(13)
  drop 12
- sr 15,15
+ xr 15,15
  br 14
  using wtwork,13
 sr90 mvc wtorec+4(0),0(9)
@@ -227,7 +265,7 @@ iofini ds 0d
  freemain r,a=(1),lv=worklen
  lm 14,12,12(13)
  drop 12
- sr 15,15
+ xr 15,15
  br 14
  cnop 0,4
 *
@@ -275,7 +313,7 @@ pt20 equ *	enabling trap.
 pt70 equ *
  lm 14,3,12(13)
  drop 3
- sr 15,15
+ xr 15,15
  br 14
 bd1 dc x'ffff'	this is not valid decimal packed
  cnop 0,4

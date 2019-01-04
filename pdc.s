@@ -33,7 +33,10 @@ getpacked equ *
  using *,12
  stm 14,12,12(13)
  lr 12,15
- getmain r,lv=gpwlen
+ la 1,gpwlen
+ la 0,3
+ l 15,=v(getspace)
+ balr 14,15
  st 13,4(1)
  st 1,8(13)
  lr 13,1
@@ -86,10 +89,12 @@ gp30 equ *
 gp90 mvc 16(4,4),=F'4'
 *
 gp92 equ *
- lr 1,13
+ lr 0,13
  l 13,gpsave+4
  drop 13
- freemain r,a=(1),lv=gpwlen
+ la 1,gpwlen
+ l 15,=v(freespace)
+ balr 14,15
  lm 14,12,12(13)
  br 14
 gp95 pack 0(0,2),0(0,1)

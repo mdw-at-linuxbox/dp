@@ -13,7 +13,10 @@ main equ *
  stm 14,12,12(13)
  lr 12,15
  using dp4,12
- getmain r,lv=worklen
+ la 1,worklen
+ la 0,3
+ l 15,=v(getspace)
+ balr 14,15
  st 13,4(1)
  st 1,8(13)
  lr 13,1
@@ -585,13 +588,15 @@ dn40 equ *
 *
 * and finish up
 *
- lr 1,13
+ lr 0,13
  l 13,dp1save+4
  drop 13
- freemain r,a=(1),lv=worklen
+ la 1,worklen
+ l 15,=v(freespace)
+ balr 14,15
  lm 14,12,12(13)
  drop 12
- sr 15,15
+ xr 15,15
  br 14
 *
 * trap program interrupts from decimal instruction here
