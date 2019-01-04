@@ -8,7 +8,7 @@
  entry getpacked
 pdc csect
  balr 15,0
- lpsw 0
+ lpsw 1
  cnop 0,4
 *
 * getpacked
