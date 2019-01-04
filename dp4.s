@@ -35,6 +35,8 @@ again2 equ *
  balr 14,15
  cli 0(1),0
  bz again
+ cli 0(1),C'#'
+ bz again
  la 0,temp
  st 0,word1	first word (operation)
  l 15,=V(getword)
@@ -301,6 +303,12 @@ do60 equ *
 * format results to print
 *
  la 0,outline
+ la 1,lab3	operation
+ l 15,=V(catstr)
+ balr 14,15
+ l 1,word1
+ l 15,=V(catstr)
+ balr 14,15
  la 1,lab1	operand1
  l 15,=V(catstr)
  balr 14,15
@@ -314,12 +322,6 @@ do60 equ *
  la 1,operand2
  l 2,len2
  l 15,=V(cathexst)
- balr 14,15
- la 1,lab3	operation
- l 15,=V(catstr)
- balr 14,15
- l 1,word1
- l 15,=V(catstr)
  balr 14,15
  la 1,lab6	operand3
  l 15,=V(catstr)
@@ -335,7 +337,21 @@ do60 equ *
  mvc 0(1,1),cc
  mvi 1(1),0
  la 0,1(1)
- tm badflag+1,x'ff'
+ tm trapflag+3,255	if an exception
+ bo pr50
+ lr 4,0	report ilc
+ mvc 0(lab9len,4),lab9
+ bal 3,getilc
+ c 1,=f'4'	if it's not 4
+ be pr25
+ la 0,lab9len(4)
+ l 15,=V(catint)
+ balr 14,15
+ b pr30
+pr25 equ *
+ mvi 0(4),0
+pr30 equ *
+ tm badflag+1,x'ff'	overflow
  bz pr40
  la 1,lab4
  l 15,=V(catstr)
@@ -344,15 +360,16 @@ do60 equ *
  l 15,=V(catint)
  balr 14,15
 pr40 equ *
- tm trapflag+3,255
+ tm trapflag+3,255	exception?
  bo pr50
- la 1,lab5
+ la 1,lab5		report intcode
  l 15,=V(catstr)
  balr 14,15
  bal 3,getxcode
  l 15,=V(catint)
  balr 14,15
- la 1,lab8
+ lr 4,0
+ la 1,lab8		and iar
  l 15,=V(catstr)
  balr 14,15
  bal 3,getiar
@@ -362,11 +379,16 @@ pr40 equ *
  lr 2,0
  mvi 0(2),C'+'
  s 1,=a(extbl-do10)
+ be pr48		if it's not do10
  bl pr45
  la 0,1(2)
 pr45 equ *
  l 15,=V(catint)
  balr 14,15
+ b pr50
+pr48 equ *
+ mvi 0(4),0	backup and nul terminate
+ lr 0,4	if not reporting iar
 pr50 equ *
 *
 * report results and loop
@@ -391,7 +413,7 @@ chkover equ *
  bct 2,chkover
  b 4(3)
 *
-* fetch int code
+* fetch int code from trapsave,trapflag
 * pass: 3=ret addr
 * return: code in 1
 *
@@ -402,10 +424,10 @@ getxcode equ *
  s 1,=f'192'	remove x'c0'
  br 3
 gx10 equ *
- lh 1,trapsave+2	int code in psw
+ lh 1,trapsave+2	int code in BC mode psw
  br 3
 *
-* fetch next instruction address from psw
+* fetch next instruction address from psw in trapsave
 * pass: 3=ret addr
 * return: code in 1
 *
@@ -415,6 +437,24 @@ getiar equ *
  n 1,=X'7fffffff'
  bnzr 3
  n 1,=X'00ffffff'
+ br 3
+*
+* fetch ilc from trapsave,trapflag
+* pass 3=ret addr
+* return: ilc in 1 (should be: 0,2,4,6)
+getilc equ *
+ ltr 3,3
+ bcr 0,3
+ ltr 3,3
+ xr 1,1
+ tm trapsave+1,8	EC bit set?
+ bz gl10
+ ic 1,trapflag+5	ilc came back in r2 too
+ br 3
+gl10 equ *
+ ic 1,trapsave+4	BC mode ilc
+ srl 1,5
+ n 1,=f'6'
  br 3
 *
 * co-routine
@@ -460,8 +500,9 @@ set70 equ *
  la 1,spargs
  st 9,0(1)
  st 8,outlen
- l 15,=v(sercom)
- balr 14,15
+*
+* l 15,=v(sercom)
+* balr 14,15
 *
  la 1,spargs
  l 15,=V(spunch)
@@ -605,14 +646,16 @@ extbl ap 0(1,1),0(1,2)
 * operations.  order must match extbl
 optbl dc c'+-*/=<',X'0'
 *
-lab1 dc C'a1=',X'0'
+lab1 dc C' a1=',X'0'
 lab2 dc C' a2=',X'0'
-lab3 dc C' op=',X'0'
+lab3 dc C'op=',X'0'
 lab4 dc C' overrun=',X'0'
 lab5 dc C' ex=',X'0'
-lab6 dc C' r=',X'0'
+lab6 dc C' -> r=',X'0'
 lab7 dc C' cc=',X'0'
 lab8 dc C' iar=ex+',X'0'
+lab9 dc C' ilc='
+lab9len equ *-lab9
 badinp dc C'record ',X'0'
 badinp2 dc C' is bad, ',X'0'
 badway2 dc C'operand too big, ',X'0'
@@ -636,7 +679,7 @@ dp1save ds 18f
  ds 1f
 inline ds 81c
  ds 1f
-outline ds 81c
+outline ds 250c
  ds 1f
 word1 ds 1f
 word2 ds 1f
