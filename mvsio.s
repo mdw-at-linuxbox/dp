@@ -7,12 +7,39 @@
  entry ioinit,scards,sprint,spunch,iofini
  entry pgnttrp,sercom
 mvsio csect
- balr 15,0
- lpsw 0
+*
+* entry point
+* initialize io, call main, exit.
+*
+ using *,12
+ stm 14,12,12(13)
+ lr 12,15
+ getmain r,lv=worklen
+ st 13,4(1)
+ st 1,8(13)
+ lr 13,1
+ using work,13
+*
+ l 15,=V(ioinit)
+ balr 14,15
+ l 15,=V(main)
+ balr 14,15
+ st 0,20(13)
+ l 15,=V(iofini)
+ balr 14,15
+*
+ lr 1,13
+ l 13,iosave+4
+ drop 13
+ freemain r,a=(1),lv=worklen
+ lm 14,12,12(13)
+ drop 12
+ br 14
+ cnop 0,4
 *
 * initialize io units
 *
-ioinit equ *
+ioinit ds 0d
  stm 14,12,12(13)
  lr 12,15
  using ioinit,12
@@ -32,6 +59,7 @@ ioinit equ *
  drop 12
  sr 15,15
  br 14
+ cnop 0,4
 *
 * read input
 * parm1 = buffer
@@ -39,7 +67,7 @@ ioinit equ *
 * parm3 = modifiers (shoudd be zero, ignored)
 * parm4 = lineno (ignored)
 *
-scards equ *
+scards ds 0d
  stm 14,12,12(13)
  lr 12,15
  lr 11,1
@@ -70,6 +98,7 @@ ineof equ *
  la 15,4
  b sc10
  drop 12
+ cnop 0,4
 *
 * write output
 * parm1 = buffer
@@ -77,7 +106,7 @@ ineof equ *
 * parm3 = modifiers (shoudd be zero, ignored)
 * parm4 = lineno (ignored)
 *
-sprint equ *
+sprint ds 0d
  stm 14,12,12(13)
  lr 12,15
  lr 11,1
@@ -100,6 +129,7 @@ sprint equ *
  drop 12
  sr 15,15
  br 14
+ cnop 0,4
 *
 * write output
 * parm1 = buffer
@@ -107,7 +137,7 @@ sprint equ *
 * parm3 = modifiers (shoudd be zero, ignored)
 * parm4 = lineno (ignored)
 *
-spunch equ *
+spunch ds 0d
  stm 14,12,12(13)
  lr 12,15
  lr 11,1
@@ -130,6 +160,7 @@ spunch equ *
  drop 12
  sr 15,15
  br 14
+ cnop 0,4
 *
 * tell operator
 * parm1 = buffer
@@ -137,7 +168,7 @@ spunch equ *
 * parm3 = modifiers (shoudd be zero, ignored)
 * parm4 = lineno (ignored)
 *
-sercom equ *
+sercom ds 0d
  stm 14,12,12(13)
  lr 12,15
  lr 11,1
@@ -174,10 +205,11 @@ sr10 equ *
  using wtwork,13
 sr90 mvc wtorec+4(0),0(9)
  drop 13
+ cnop 0,4
 *
 * finish with io
 *
-iofini equ *
+iofini ds 0d
  stm 14,12,12(13)
  lr 12,15
  using iofini,12
@@ -197,6 +229,7 @@ iofini equ *
  drop 12
  sr 15,15
  br 14
+ cnop 0,4
 *
 * mts primitive to trap program interrupts
 * on entry,
@@ -206,7 +239,9 @@ iofini equ *
 * if first byte of save area is FF that
 * means load context & resume.
 *
-pgnttrp equ *
+* to re-enter code we have to cause another exception.
+*
+pgnttrp ds 0d
  using *,3
 *
  stm 14,3,12(13)
@@ -214,21 +249,25 @@ pgnttrp equ *
  lr 15,1
  tm 0(15),x'ff'
  bno pt10
- la 1,finpi
- espie set,(1),(7),param=(15)
+ la 1,finpi	ok we want to re-enter the original code
+ espie set,(1),(7),param=(15)	to do that we need to cause
+ bcr 0,1	another exception.  So trapping data exception
  bcr 0,1
  bcr 0,1
- bcr 0,1
+*
 * dr 15,15	should do spec exception
-* but actually breaks ez390 espi handler 
- cp bd1(1),bd1
+*  but actually breaks ez390 espie handler
+*  showing fault at finpi-2
+*
+ cp bd1(1),bd1	ez390 espie handler worked with this.
+*
  dc y(0)	survived? die die die
 pt10 equ *
- ltr 0,0
+ ltr 0,0	disabling trap?
  bnz pt20
  espie reset,,
  b pt70
-pt20 equ *
+pt20 equ *	enabling trap.
  st 0,4(15)	stuff handler somewhere
  la 1,onpgmint
  espie set,(1),((6,11)),param=(15)
@@ -238,15 +277,15 @@ pt70 equ *
  drop 3
  sr 15,15
  br 14
-bd1 dc x'ffff'
- ds 0f
+bd1 dc x'ffff'	this is not valid decimal packed
+ cnop 0,4
 *
 * here when trap fires
 *  mts rewrites psw in bc form.  that won't work here.
 *  so, if we return an ec format pc, our caller will
 *  need to know to look in R2-R3 for the intcode.
 *
-onpgmint equ *
+onpgmint ds 0d
  using *,15
  using epie,1
  l 2,epieparm	2 user parm
@@ -276,21 +315,21 @@ pi10 equ *
  br 14
  drop 1
  drop 2
-diehere equ *
+ cnop 0,4
+diehere ds 0d
  dc y(0)	return here to die
  bcr 0,0
  bcr 0,0
  bcr 0,0
- bcr 0,0
- bcr 0,0
+ cnop 0,4
 *
 * here to resume after 2nd trap
 *
-finpi equ *
+finpi ds 0d
  using *,15
- bcr 0,15
- bcr 0,15
- bcr 0,15
+ bcr 0,15	weird no-ops
+ bcr 0,15	which did not help ez390
+ bcr 0,15	espie with dr 15,15
  using epie,1
  l 2,epieparm	2 user parm
  using ptargs,2

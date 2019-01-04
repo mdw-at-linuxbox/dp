@@ -7,7 +7,9 @@
 * do it again unmasked.
 * if exception, say what.
 *
+ entry main
 dp4 csect
+main equ *
  stm 14,12,12(13)
  lr 12,15
  using dp4,12
@@ -465,10 +467,7 @@ gl10 equ *
 * 5. return.  if a trap occurs, log it.
 * 6. on re-entry, capture and print results.
 *
-setup equ *
- l 15,=V(ioinit)
- balr 14,15
- b set40
+setup equ set40
 set10 equ *
  l 9,rcount	got a record
  a 9,=f'1'
@@ -586,8 +585,6 @@ dn40 equ *
 *
 * and finish up
 *
- l 15,=V(iofini)
- balr 14,15
  lr 1,13
  l 13,dp1save+4
  drop 13
