@@ -2,8 +2,8 @@
 * basic string operations
 * to parse input and generate output
 *
- entry skipspc,getword,catstr,strlen,catint,cathex,index
- entry gethex
+ entry skipspc,getword,catstr,strlen,catint,cathexst,index
+ entry gethexst
 str csect
  balr 15,0
  lpsw 0
@@ -72,7 +72,7 @@ gw90 mvc 0(0,2),0(3)
 *  4 byte count(-1)
 *  5 unpack len
 *
-gethex equ *
+gethexst equ *
  using *,15
  stm 1,5,24(13)
 *
@@ -259,7 +259,7 @@ p8len equ *-p8
 * 2 = length hex string
 * (0) = put printable number here - updated
 *
-cathex equ *
+cathexst equ *
  using *,15
  stm 1,3,24(13)
 *
