@@ -544,7 +544,7 @@ dn20 equ *
  la 1,sum0
  l 15,=V(catstr)
  balr 14,15
- l 1,opcount	operation cound
+ l 1,opcount	operation count
  l 15,=V(catint)
  balr 14,15
  la 1,sum3
