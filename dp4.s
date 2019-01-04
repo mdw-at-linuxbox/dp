@@ -281,6 +281,22 @@ do55 equ *
  a 9,=f'1'
  st 9,excount
 do60 equ *
+ la 1,guard2	make sure guard bytes not clobbered
+ la 2,4
+ bal 3,chkover
+ oi badflag+1,1	skipped if no problem
+ la 1,guard3
+ l 2,len2
+ sr 1,2
+ la 2,4(2)
+ bal 3,chkover
+ oi badflag+1,2	maybe skipped
+ la 1,guard4
+ l 2,len3
+ sr 1,2
+ la 2,4(2)
+ bal 3,chkover
+ oi badflag+1,4	maybe skipped
 *
 * format results to print
 *
@@ -315,10 +331,43 @@ do60 equ *
  la 1,lab7	cc
  l 15,=V(catstr)
  balr 14,15
- lr 1,0
+ lr 1,0	append cc digit
  mvc 0(1,1),cc
  mvi 1(1),0
  la 0,1(1)
+ tm badflag+1,x'ff'
+ bz pr40
+ la 1,lab4
+ l 15,=V(catstr)
+ balr 14,15
+ lh 1,badflag
+ l 15,=V(catint)
+ balr 14,15
+pr40 equ *
+ tm trapflag+3,255
+ bo pr50
+ la 1,lab5
+ l 15,=V(catstr)
+ balr 14,15
+ bal 3,getxcode
+ l 15,=V(catint)
+ balr 14,15
+ la 1,lab8
+ l 15,=V(catstr)
+ balr 14,15
+ bal 3,getiar
+ s 1,=a(extbl)
+ bnl pr45
+ s 0,=f'3'
+ lr 2,0
+ mvi 0(2),C'+'
+ s 1,=a(extbl-do10)
+ bl pr45
+ la 0,1(2)
+pr45 equ *
+ l 15,=V(catint)
+ balr 14,15
+pr50 equ *
 *
 * report results and loop
 *
@@ -328,6 +377,45 @@ op90 equ *
  mvi 0(8),C' '
  sr 8,9
  b again2
+*
+* check guard bytes
+* (1)=guard bytes (should all be x'a5')
+* 2=len
+* 3=return addr.
+* skips 4 bytes on return if all ok
+*
+chkover equ *
+ cli 0(1),x'a5'
+ bnzr 3
+ la 1,1(1)
+ bct 2,chkover
+ b 4(3)
+*
+* fetch int code
+* pass: 3=ret addr
+* return: code in 1
+*
+getxcode equ *
+ tm trapsave+1,8	EC bit set?
+ bz gx10
+ lh 1,trapflag+6	int code came back in r2
+ s 1,=f'192'	remove x'c0'
+ br 3
+gx10 equ *
+ lh 1,trapsave+2	int code in psw
+ br 3
+*
+* fetch next instruction address from psw
+* pass: 3=ret addr
+* return: code in 1
+*
+getiar equ *
+ l 1,trapsave+4
+ tm trapsave+1,8	EC bit set?
+ n 1,=X'7fffffff'
+ bnzr 3
+ n 1,=X'00ffffff'
+ br 3
 *
 * co-routine
 * 1. fetch data
@@ -520,8 +608,11 @@ optbl dc c'+-*/=<',X'0'
 lab1 dc C'a1=',X'0'
 lab2 dc C' a2=',X'0'
 lab3 dc C' op=',X'0'
+lab4 dc C' overrun=',X'0'
+lab5 dc C' ex=',X'0'
 lab6 dc C' r=',X'0'
 lab7 dc C' cc=',X'0'
+lab8 dc C' iar=ex+',X'0'
 badinp dc C'record ',X'0'
 badinp2 dc C' is bad, ',X'0'
 badway2 dc C'operand too big, ',X'0'
