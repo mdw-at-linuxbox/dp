@@ -588,10 +588,10 @@ dn40 equ *
 *
 * and finish up
 *
- lr 0,13
+ lr 1,13
  l 13,dp1save+4
  drop 13
- la 1,worklen
+ la 0,worklen
  l 15,=v(freespace)
  balr 14,15
  lm 14,12,12(13)

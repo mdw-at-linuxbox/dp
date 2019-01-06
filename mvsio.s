@@ -67,9 +67,9 @@ getspace ds 0d
 *
 freespace ds 0d
  using *,15
- xr 0,1
- xr 1,0
- xr 0,1
+* xr 0,1
+* xr 1,0
+* xr 0,1
  freemain r,a=(1),lv=(0)
  br 14
  drop 15

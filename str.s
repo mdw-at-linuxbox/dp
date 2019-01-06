@@ -245,10 +245,10 @@ ci30 equ *
  sr 2,3
  st 2,20(4)
 *
- lr 0,13
+ lr 1,13
  l 13,cisave+4
  drop 13
- la 1,ciwlen
+ la 0,ciwlen
  l 15,=v(freespace)
  balr 14,15
  lm 14,12,12(13)

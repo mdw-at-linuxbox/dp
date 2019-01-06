@@ -89,10 +89,10 @@ gp30 equ *
 gp90 mvc 16(4,4),=F'4'
 *
 gp92 equ *
- lr 0,13
+ lr 1,13
  l 13,gpsave+4
  drop 13
- la 1,gpwlen
+ la 0,gpwlen
  l 15,=v(freespace)
  balr 14,15
  lm 14,12,12(13)
