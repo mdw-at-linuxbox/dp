@@ -1,4 +1,5 @@
 ,*
+*.CPY
 *.BIN
 *.OBJ
 *.PRN

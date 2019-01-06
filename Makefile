@@ -54,11 +54,13 @@ PDC.MLC: pdc.s update1.pl
 #
 # standalone support
 #
-SAIO.PRN SAIO.OBJ: SAIO.MLC S360.MA
+SAIO.PRN SAIO.OBJ: SAIO.MLC S360.MA ALEQU.CPY
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 SAIO 'PROFILE(S360.MA)'
 SAIO.MLC: saio.s update1.pl
 	perl update1.pl -par ,,,36 -uc saio.s > SAIO.MLC
-ALLOC.PRN ALLOC.OBJ: ALLOC.MLC S360.MA
+ALLOC.PRN ALLOC.OBJ: ALLOC.MLC S360.MA ALEQU.CPY
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 ALLOC 'PROFILE(S360.MA)'
 ALLOC.MLC: alloc.s update1.pl
 	perl update1.pl -par ,,,36 -uc alloc.s > ALLOC.MLC
+ALEQU.CPY: alequ.s update1.pl
+	perl update1.pl -par ,,,36 -uc alequ.s > ALEQU.CPY
