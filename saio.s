@@ -2,6 +2,8 @@
 * simulate mts-like environment
 * for standalone s/370
 *
+ copy alequ
+*
  entry scards,spunch
  entry pgnttrp,sercom,getspace,freespace
 saio csect
@@ -9,7 +11,22 @@ saio csect
 * entry point
 * initialize io, call main, exit.
 *
- using *,12
+ balr 15,0
+st10 equ *
+ using *,15
+ b startup
+ cnop 0,4
+freemem dc f'12288'
+startup equ *
+ lr 12,15
+ drop 15
+ using st10,12
+ la 13,mypool
+ l 1,=a(mypool,mygrow)
+ l 15,=v(initaloc)
+ balr 15,14
+ l 0,freemem
+ st 0,mypool+(firstp-pool)
  la 1,worklen
  la 0,3
  l 15,=v(getspace)
@@ -26,12 +43,6 @@ saio csect
  l 15,=V(iofini)
  balr 14,15
 *
- lr 1,13
- xr 13,13
- drop 13
- la 1,worklen
- l 15,=v(freespace)
- balr 14,15
  lpsw diswait
 diswait ds 0d
  dc x'0002',h'0',a(0)
@@ -51,11 +62,9 @@ diswait ds 0d
 *
 getspace ds 0d
  using *,15
- getmain r,lv=(1)
- ltr 15,15
- bner 14
- st 0,0(1)
- br 14
+ l 15,=a(mypool)
+ using pool,15
+ b alalloc
  drop 15
  cnop 0,4
 *
@@ -68,13 +77,23 @@ getspace ds 0d
 *
 freespace ds 0d
  using *,15
- xr 0,1
- xr 1,0
- xr 0,1
- freemain r,a=(1),lv=(0)
- br 14
+ l 15,=a(mypool)
+ using pool,15
+ b alfree
  drop 15
  cnop 0,4
+*
+* mygrow
+* enter:
+*  1=suggested start
+*  0=len
+* exit:
+*  1=start
+*  15=0
+*
+mygrow ds 0f
+ xr 15,15
+ br 14
 *
 * initialize io units
 *
@@ -359,14 +378,12 @@ fn10 equ *
  drop 1
  drop 2
 *
-indcb dcb dsorg=ps,macrf=(pm),ddname=sysin,recfm=fba,lrecl=80,eodad=ineof
-outdcb dcb dsorg=ps,macrf=(pm),ddname=sysout,recfm=fba,lrecl=133
-pchdcb dcb dsorg=ps,macrf=(pm),ddname=syspch,recfm=fba,lrecl=80
-*openlist open mf=l,(indcb,input,outdcb,output)
-*clslist close mf=l,(indcb,,outdcb,)
-openlist open mf=l,(indcb,input,pchdcb,output)
-clslist close mf=l,(indcb,,pchdcb,)
  ltorg
+*
+mypool ds 0f
+ org pool+poollen
+ ds f'00'
+*
 work dsect
 iosave ds 18f
 worklen equ *-work
