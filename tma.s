@@ -350,13 +350,43 @@ mygrow ds 0f
  stm 14,12,12(13)
  lr 12,15
 *
+ lr 8,0
+*
  lr 1,0
  getmain r,lv=(1)
  st 15,16(13)
  st 1,24(13)
 *
+ la 7,grsave
+ st 13,4(7)
+ st 7,8(13)
+ lr 13,7
+*
+ la 0,grwtorec+4
+ la 1,grmsg1
+ l 15,=v(catstr)
+ balr 14,15
+ lr 1,8
+ l 15,=v(catint)
+ balr 14,15
+ la 1,grmsg2
+ l 15,=v(catstr)
+ balr 14,15
+ l 1,4(13)
+ l 1,24(1)
+ l 15,=v(cathex)
+ balr 14,15
+ sr 0,1
+ sth 0,grwtorec
+ la 1,grwtorec
+ wto mf=(e,(1))
+ l 13,4(13)
+*
  lm 14,12,12(13)
  br 14
+grmsg1 dc c'grow len=',x'0'
+grmsg2 dc c' result=0x',x'0'
+ cnop 0,4
 *
 * getspace
 *pass:
@@ -444,6 +474,8 @@ sr90 mvc wtorec+4(0),0(9)
 lineno dc f'0'
 zero dc f'0'
 outproto dc a(0,0,zero,lineno)
+grsave ds 18f
+grwtorec ds 1f,cl80
  ltorg
 *
 mypool ds 0f
