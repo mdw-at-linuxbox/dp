@@ -9,7 +9,7 @@ lastp ds 1f
 poolsize ds 1f
 freesize ds 1f
 grow ds 1f
-alnew ds 2f
+albase ds 1f
 alreg1 ds 7f
 alreg2 ds 7f
 poollen equ *-pool
