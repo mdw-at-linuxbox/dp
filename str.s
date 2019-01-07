@@ -3,7 +3,7 @@
 * to parse input and generate output
 *
  entry skipspc,getword,catstr,strlen,catint,cathexst,index
- entry gethexst
+ entry gethexst,cathex,getint
 str csect
  balr 15,0
  lpsw 1
@@ -116,6 +116,89 @@ gh45 n 5,=F'15'
  xr 15,15
  br 14
 gh95 oi 0(2),0
+ cnop 0,4
+*
+* get integer
+* leading spaces, optional -, optional 0 or 0x, digits 0-9a-fA-F
+* enter: 1=str
+* exit:
+* 0=integer, 1=str (updated)
+* 15=0 | 4
+*
+getint equ *
+ using *,15
+ stm 2,4,28(13)
+ lr 2,0
+ la 3,1
+ la 2,10
+gi5 equ *
+ mvi 71(13),0
+ mvi 70(13),255
+ cli 0(1),c' '
+ bne gi6
+ la 1,1(1)
+ b gi5
+gi6 equ *
+ cli 0(1),c'-'
+ bne gi7
+ mvi 71(13),255
+gi7 equ *
+ cli 0(1),c'0'
+ bne gi10
+ la 2,8
+ la 1,1(1)
+ cli 0(1),c'x'
+ bne gi10
+ la 1,1(1)
+ la 2,16
+gi10 equ *
+ xr 0,0
+ st 2,72(13)
+gi15 equ *
+ tm 0(1),x'ff'
+ be gi70
+ xr 3,3
+ ic 3,0(1)
+ cli 0(1),c'0'
+ bl gi20
+ cli 0(1),c'9'
+ bh gi20
+ s 3,=A(C'0')
+ b gi40
+gi20 equ *
+ cli 0(1),c'a'
+ bl gi30
+ cli 0(1),c'f'
+ bh gi30
+ s 3,=A(C'a'-10)
+ b gi40
+gi30 equ *
+ cli 0(1),c'A'
+ bl gi75
+ cli 0(1),c'F'
+ bh gi75
+ s 3,=A(C'A'-10)
+gi40 equ *
+ mvi 70(13),0
+ mh 0,74(13)
+ ar 0,3
+ la 1,1(1)
+ b gi15
+gi75 equ *
+gi70 equ *
+ tm 71(13),255
+ bz gi80
+ lcr 0,0
+gi80 equ *
+ xr 2,2
+ tm 70(13),255
+ bz gi90
+ la 2,4
+gi90 equ *
+ lr 15,2
+ lm 2,4,28(13)
+ br 14
+ drop 15
  cnop 0,4
 *
 * copy (1) to (0)
@@ -257,6 +340,40 @@ ci30 equ *
  br 14
 p8 dc X'40',3X'20',X'6B',3X'20',X'6B',3X'20',X'6B',3X'20',X'6B',X'202120',X'0'
 p8len equ *-p8
+ cnop 0,4
+*
+* put hex number
+* 1= hex number
+* (0) = put printable number here, update, null terminate
+*
+cathex equ *
+ using *,15
+ stm 1,3,24(13)
+*
+ lr 3,0
+ la 3,20(3)
+ mvi 0(3),0
+cx10 equ *
+ la 2,15
+ nr 2,1
+ la 2,hexdig(2)
+ bctr 3,0
+ mvc 0(1,3),0(2)
+ srl 1,4
+ n 1,=X'0fffffff'
+ bne cx10
+ lr 2,0
+ lr 1,0
+ la 2,20(2)
+ sr 2,3
+ ex 2,cx20
+ ar 0,2
+*
+ lm 1,3,24(13)
+ drop 15
+ xr 15,15
+ br 14
+cx20 mvc 0(0,1),0(3)
  cnop 0,4
 *
 * put hex string
