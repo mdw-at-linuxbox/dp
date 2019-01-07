@@ -159,12 +159,24 @@ doalloc ds 0h
  l 15,=v(getint)
  balr 14,15
  lr 6,0
- la 1,alb3
  ltr 15,15
- bnz al70
+ bz al20
+ la 1,alb3
+ b al70
+al20 equ *
+ l 15,=v(skipspc)
+ balr 14,15
+ tm 0(1),x'ff'
+ bz al30
+ la 1,alb4
+ b al70
+al30 equ *
  la 0,0
  lr 1,6
+*
  l 15,=a(getmem)
+ balr 14,15
+*
  lr 8,1
  la 0,outline
  la 1,alb1
@@ -217,30 +229,45 @@ al90 equ *
  b again
 alb1 dc c'can''t allocate, ',x'0'
 alb2 dc c'alloc: 0x',x'0'
-alb3 dc c'alloc fails, 0x',x'0'
+alb3 dc c'alloc: not a number ',x'0'
+alb4 dc c'alloc: trailing stuff after ',x'0'
  cnop 0,4
 dofree ds 0h
  la 1,1(1)
  l 15,=v(getint)
  balr 14,15
- lr 6,0
- la 1,fab1
+ lr 8,0
  ltr 15,15
- bnz al40
+ bz fr20
+ lr 6,8
+ la 1,fab1
+ b al70
+fr20 equ *
  l 15,=v(getint)
  balr 14,15
  lr 7,0
- la 1,fab2
  ltr 15,15
- bnz al70
-*
- lr 1,6
-*
- la 15,4
-* l 15,=a(freemem)
-* balr 15,14
+ bz fr30
+ lr 6,7
+ la 1,fab5
+ b al70
+fr30 equ *
+ l 15,=v(skipspc)
+ balr 14,15
+ tm 0(1),x'ff'
+ bz fr35
+ lr 6,7
+ la 1,alb4
+ b al70
+fr35 equ *
 *
  lr 0,7
+ lr 1,8
+*
+* la 15,4
+ l 15,=a(freemem)
+ balr 14,15
+*
  la 0,outline
  la 1,fab3
  ltr 15,15
@@ -259,12 +286,14 @@ fr40 equ *
  l 15,=v(catint)
  balr 14,15
  b al90
-fab1 dc c'free: not a number',x'0'
-fab2 dc c'free: not a number too',x'0'
+fab1 dc c'free: not a number ',x'0'
+fab2 dc c'free: not a number too ',x'0'
 fab3 dc c'free 0x',x'0'
 fab4 dc c'cannot free 0x',x'0'
+fab5 dc c'free: trailing stuff after ',x'0'
 *
-doquit equ *
+ cnop 0,4
+doquit ds 0f
  lr 1,13
  l 13,iosave+4
  drop 13
@@ -272,6 +301,7 @@ doquit equ *
  lm 14,12,12(13)
  drop 12
  br 14
+ cnop 0,4
 *
 * getspace
 *pass:

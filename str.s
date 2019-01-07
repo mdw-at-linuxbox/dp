@@ -131,67 +131,79 @@ getint equ *
  lr 2,0
  la 3,1
  la 2,10
-gi5 equ *
- mvi 71(13),0
- mvi 70(13),255
+gi10 equ *
+ mvi 71(13),64	plus, no digits seen yet
  cli 0(1),c' '
- bne gi6
+ bne gi15
  la 1,1(1)
- b gi5
-gi6 equ *
+ b gi10
+gi15 equ *
  cli 0(1),c'-'
- bne gi7
- mvi 71(13),255
-gi7 equ *
+ bne gi20
+ oi 71(13),128	negative
+gi20 equ *
  cli 0(1),c'0'
- bne gi10
+ bne gi35
+ cli 1(1),c'x'
+ be gi23
+ cli 1(1),c'X'
+ bne gi25
+gi23 equ *
+ la 2,16
+ la 1,2(1)
+ b gi35
+gi25 equ *
+ ni 71(13),255-64	saw a digit
  la 2,8
  la 1,1(1)
- cli 0(1),c'x'
- bne gi10
- la 1,1(1)
- la 2,16
-gi10 equ *
+gi35 equ *
  xr 0,0
  st 2,72(13)
-gi15 equ *
+gi40 equ *
  tm 0(1),x'ff'
  be gi70
  xr 3,3
  ic 3,0(1)
  cli 0(1),c'0'
- bl gi20
+ bl gi50
  cli 0(1),c'9'
- bh gi20
+ bh gi50
  s 3,=A(C'0')
- b gi40
-gi20 equ *
+ b gi60
+gi50 equ *
  cli 0(1),c'a'
- bl gi30
+ bl gi55
  cli 0(1),c'f'
- bh gi30
+ bh gi55
  s 3,=A(C'a'-10)
- b gi40
-gi30 equ *
+ b gi60
+gi55 equ *
  cli 0(1),c'A'
  bl gi75
  cli 0(1),c'F'
  bh gi75
  s 3,=A(C'A'-10)
-gi40 equ *
- mvi 70(13),0
+gi60 equ *
+ clr 3,2
+ bnl gi72
+gi71 equ *
+ ni 71(13),255-64	saw a digit
  mh 0,74(13)
  ar 0,3
  la 1,1(1)
- b gi15
+ b gi40
+gi72 equ *
+* bcr 0,0
+* bcr 0,1
+* b gi71
 gi75 equ *
 gi70 equ *
- tm 71(13),255
+ tm 71(13),128	negative?
  bz gi80
  lcr 0,0
 gi80 equ *
  xr 2,2
- tm 70(13),255
+ tm 71(13),64	saw no digits?
  bz gi90
  la 2,4
 gi90 equ *
