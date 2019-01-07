@@ -27,6 +27,9 @@ startup equ *
  balr 15,14
  l 0,freemem
  st 0,mypool+(firstp-pool)
+ drop 13
+ la 13,mywork
+ using work,13
  la 1,worklen
  la 0,3
  l 15,=v(getspace)
@@ -381,16 +384,14 @@ fn10 equ *
  ltorg
 *
 mypool ds 0f
- org pool+poollen
+ org mypool+poollen
+mywork ds 0f
+ org mywork+worklen
  ds f'00'
 *
 work dsect
 iosave ds 18f
 worklen equ *-work
-wtwork dsect
-wtsave ds 18f
-wtorec ds 1f,80c
-wtwklen equ *-work
 ptargs dsect
 ptpsw ds 2f
 ptgprs ds 16f
