@@ -29,10 +29,9 @@ initaloc equ *
  mvi 0(2),0
  mvc 1(poollen-1,2),0(2)
  st 3,grow
- mvc alnew(4),=a(alloc)
- st 2,alnew+4
+ mvc albase(4),=a(alloc)
  mvc alalloc(protosize),poolproto
- mvc 16(4,3),alsave	zero rc
+ mvc 16(4,13),alsave	zero rc
  lm 14,3,12(13)
  br 14
  drop 2
@@ -41,12 +40,11 @@ plalloc equ *
  using pool,15
  using alloc,12
  stm 8,14,alreg2
- lm 12,13,alnew
+ l 12,albase
  b intalloc
- using pool-12,15
 plfree equ *
  stm 8,14,alreg1
- lm 12,13,alnew
+ l 12,albase
  b intfree
  drop 15
  drop 12
@@ -80,6 +78,7 @@ prevp equ 8	%r1
  using alloc,12
  using pool,13
 intfree equ *
+ lr 13,15
  la t,align
  ar p,t	a += ALIGN
  ar lenf,t	lenf += ALIGN
@@ -110,7 +109,7 @@ fr25 equ *	L5
  bl fr30	return 0
 fr42 equ *	! L29
  ltr np,np	if (np &&
- be fr50
+ be fr48
 fr45 equ *	L13
  lr t,p		a + lenf > np)
  ar t,lenf
@@ -152,7 +151,12 @@ fr60 equ *	L12
  a lenf,freesize	q->freesize += lenf;
  st lenf,freesize
 fr90 equ *	L1
- lr 1,pp	return pp;
+ xr u,u
+ ltr 1,pp	return pp;
+ bne fr95
+ la u,4
+fr95 equ *
+ lr 15,u
  lm 8,14,alreg1
  br 14
 *
@@ -172,7 +176,7 @@ gr10 equ *
  lr 0,t	lena
  lr 1,u	hint
  l 15,grow
- balr 15,14
+ balr 14,15
  ltr 15,15
  be gr20
  la 1,0
@@ -186,17 +190,16 @@ gr20 equ *
  lr 0,t
  lr 15,13
  bal 14,alfree
- lr pp,1
- lr u,pp
+ lr u,p		lastp = p+t
  ar u,t
  st u,lastp
- lr u,t
+ lr u,t		q->poolsize += t
  a u,poolsize
  st u,poolsize
- l u,firstp
+ l u,firstp	if (!q->firstp)
  ltr u,u
  bne gr90
- st pp,firstp
+ st p,firstp		q-firstp = p
 gr90 equ *
  b al11
 *
@@ -211,6 +214,7 @@ gr90 equ *
 *
  using pool,13
 intalloc equ *
+ lr 13,15
  lr lena,1
  la u,align
  ar lena,u	lena += ALIGN
@@ -227,9 +231,7 @@ al60 equ *	L42
  bnh al20 
  lr pp,p	pp = &p->next
 al11 equ *	here from intgrow
- l p,0(p)	p = *pp
- lr lena,q
- ltr pp,1	if (!pp) return 0
+ ltr pp,pp	if (!pp) return 0
  be al90
  l p,0(pp)	p = *pp
 al20 equ *	L41
