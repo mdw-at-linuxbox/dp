@@ -61,7 +61,8 @@ again equ *
  b again
 oops equ *
  dc y(0)
-doprint equ *
+ cnop 0,4
+doprint ds 0h
  using pool,6
  la 6,mypool
  la 0,outline
@@ -153,17 +154,44 @@ lab3 dc c', inuse = ',x'0'
 lab4 dc c' (',x'0'
 lab5 dc c')',x'0'
  cnop 0,4
-doalloc equ *
+doalloc ds 0h
  la 1,1(1)
  l 15,=v(getint)
  balr 14,15
  lr 6,0
- la 0,outline
- la 1,alb2
+ la 1,alb3
  ltr 15,15
- bz al30
+ bnz al70
+ la 0,0
+ lr 1,6
+ l 15,=a(getmem)
+ lr 8,1
+ la 0,outline
  la 1,alb1
-al30 equ *
+ ltr 15,15
+ bne al40
+ la 1,alb2
+ l 15,=v(catstr)
+ balr 14,15
+ lr 1,8
+ l 15,=v(cathex)
+ balr 14,15
+ lr 1,0
+ mvi 0(1),c'/'
+ la 0,1(1)
+ l 1,0(8)
+ l 15,=v(catint)
+ balr 14,15
+ b al90
+al40 equ *
+ l 15,=v(catstr)
+ balr 14,15
+ lr 1,6
+ l 15,=v(catint)
+ balr 14,15
+ b al90
+al70 equ *
+ la 0,outline
  l 15,=v(catstr)
  balr 14,15
  lr 1,6
@@ -176,6 +204,7 @@ al30 equ *
  l 15,=v(cathex)
  balr 14,15
 *
+al90 equ *
  la 1,outline
  st 1,spargs
  la 1,outlen
@@ -186,11 +215,54 @@ al30 equ *
  l 15,=a(sercom)
  balr 14,15
  b again
-alb1 dc c'bad number, ',x'0'
-alb2 dc c'good number, ',x'0'
-dofree equ *
- wto 'not yet'
- b again
+alb1 dc c'can''t allocate, ',x'0'
+alb2 dc c'alloc: 0x',x'0'
+alb3 dc c'alloc fails, 0x',x'0'
+ cnop 0,4
+dofree ds 0h
+ la 1,1(1)
+ l 15,=v(getint)
+ balr 14,15
+ lr 6,0
+ la 1,fab1
+ ltr 15,15
+ bnz al40
+ l 15,=v(getint)
+ balr 14,15
+ lr 7,0
+ la 1,fab2
+ ltr 15,15
+ bnz al70
+*
+ lr 1,6
+*
+ la 15,4
+* l 15,=a(freemem)
+* balr 15,14
+*
+ lr 0,7
+ la 0,outline
+ la 1,fab3
+ ltr 15,15
+ be fr40
+ la 1,fab4
+fr40 equ *
+ l 15,=v(catstr)
+ balr 14,15
+ lr 1,6
+ l 15,=v(cathex)
+ balr 14,15
+ lr 1,0
+ mvi 0(1),c'/'
+ la 0,1(1)
+ lr 1,7
+ l 15,=v(catint)
+ balr 14,15
+ b al90
+fab1 dc c'free: not a number',x'0'
+fab2 dc c'free: not a number too',x'0'
+fab3 dc c'free 0x',x'0'
+fab4 dc c'cannot free 0x',x'0'
 *
 doquit equ *
  lr 1,13
