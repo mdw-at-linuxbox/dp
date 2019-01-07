@@ -276,7 +276,7 @@ fr35 equ *
 fr40 equ *
  l 15,=v(catstr)
  balr 14,15
- lr 1,6
+ lr 1,8
  l 15,=v(cathex)
  balr 14,15
  lr 1,0
@@ -349,12 +349,14 @@ mygrow ds 0f
  using *,12
  stm 14,12,12(13)
  lr 12,15
+*
  lr 1,0
  getmain r,lv=(1)
- st 13,4(1)
- st 1,8(13)
- lr 13,1
- using work,13
+ st 15,16(13)
+ st 1,24(13)
+*
+ lm 14,12,12(13)
+ br 14
 *
 * getspace
 *pass:
