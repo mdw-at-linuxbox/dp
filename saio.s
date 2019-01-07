@@ -3,10 +3,12 @@
 * for standalone s/370
 *
  copy alequ
+ copy psa
 *
  entry scards,spunch
  entry pgnttrp,sercom,getspace,freespace
-saio csect
+saio start h'400'
+ using psa,0
 *
 * entry point
 * initialize io, call main, exit.
@@ -27,7 +29,6 @@ startup equ *
  balr 15,14
  l 0,freemem
  st 0,mypool+(firstp-pool)
- drop 13
  la 13,mywork
  using work,13
  la 1,worklen
@@ -118,7 +119,7 @@ scards ds 0d
  mvi inccw,2
  balr 4,0
  la 2,inccw
- st 2,72
+ st 2,thecaw
  lh 3,inunit
 sc10 equ *
  sio 0(3)
@@ -128,9 +129,9 @@ sc10 equ *
 sc20 equ *
  tio 0(3)
  bc 3,sc20
- tm 68,2
+ tm thecsw+4,2
  bc 1,help
- tm 68,x'f3'
+ tm thecsw+4,x'f3'
  bc 5,hell
  l 2,in2
  la 2,1(0,2)
@@ -146,10 +147,10 @@ sc70 equ *
  br 14
 ineof equ *
  la 15,4
- br sc70
-incsw tm 68,1
+ b sc70
+incsw tm thecsw+4,1
  bc 1,ineof
- tm 68,16
+ tm thecsw+4,16
  bcr 1,4
  b help
 *
@@ -175,7 +176,7 @@ spunch ds 0d
  sth 2,outccw+6
  balr 4,0
  la 2,outccw
- st 2,72
+ st 2,thecaw
  lh 3,otunit
 sp10 equ *
  sio 0(3)
@@ -185,22 +186,22 @@ sp10 equ *
 sp20 equ *
  tio 0(3)
  bc 3,sp20
- tm 68,2
+ tm thecsw+4,2
  bc 1,outsns
- tm 68,1
+ tm thecsw+4,1
  bc 1,skip
 outlv lm 0,12,20(13)
  xr 15,15
  br 14
-outcsw tm 68,2
+outcsw tm thecsw+4,2
  bc 1,outsns
- tm 68,1
+ tm thecsw+4,1
  bc 1,skip
- tm 68,16
+ tm thecsw+4,16
  bcr 1,4
  b help
 outsns la 2,snsccw
- st 2,72
+ st 2,thecaw
  sio 0(3)
  bc 7,outsns
 sp60 equ *
@@ -210,10 +211,10 @@ sp60 equ *
  bcr 8,4
  b help
 skip la 2,skpccw
- st 2,72
+ st 2,thecaw
  sio 0(3)
  bc 3,skip
- tm 68,16
+ tm thecsw+4,16
  bc 1,skip
  br 4
 outccw ccw 9,0,x'20',0
@@ -240,20 +241,56 @@ sercom ds 0d
  lh 2,0(0,2)
  sth 2,hlpccw+6
  la 5,hlpccw
-sr10 equ *
- st 5,72
- l 7,cons
- sio 0(7)
- bc 7,sr10
-sr20 equ *
- tio 0(7)
- bc 7,sr20
-*
+ bal 6,type
  lm 0,12,20(13)
  xr 15,15
  br 14
-typead dc f'9'
+*
+help equ *
+ balr 15,0
+ using *,15
+ mvc hlpccw+1(3),=al3(hlpmsg)
+ la 5,hlpccw
+ mvc svstat(8),thecsw
+ sth 3,help1  
+ unpk help2(5),help1(3)
+ mvc hlpmsg+5(3),help2+1
+ nc hlpmsg+5(3),=X'0f0f0f'
+ tr hlpmsg+5(3),help3
+ bal 6,type
+ drop 15
+ using *,6
+ lpsw helpsw
+hell equ *
+ balr 15,0
+ using *,15
+ la 5,hllccw
+ bal 6,type
+ drop 15
+ using *,6
+ lpsw hllpsw
+type equ *
+ st 5,thecaw
+ balr 5,0
+ using *,5
+ lh 7,cons
+ sio 0(7)
+ bc 7,type
+sr20 equ *
+ tio 0(7)
+ bc 7,sr20
+ br 6
+helpsw dc 0d,x'0002000000001111'
+hllpsw dc 0d,x'0002000000001111'
+hllccw ccw 9,hllmsg,x'20',l'hllmsg
 hlpccw ccw 9,0,x'20',10
+cons dc xl2'009'
+help3 dc c'01234567689abcdef'
+help1 ds 1h
+help2 ds 5c
+hllmsg dc c'I/O botch - failed!'
+hlpmsg dc c'help xxx'
+svstat ds d
 *
 *
 * finish with io
@@ -272,6 +309,7 @@ iofini ds 0d
 * to re-enter code we have to cause another exception.
 *
 pgnttrp ds 0d
+ aif (1).nope
  using *,3
 *
  stm 14,3,12(13)
@@ -380,6 +418,7 @@ fn10 equ *
  br 14
  drop 1
  drop 2
+.nope anop
 *
  ltorg
 *
