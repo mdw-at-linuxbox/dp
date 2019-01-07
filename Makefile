@@ -41,7 +41,7 @@ DP4.MLC: dp4.s update1.pl
 #
 TMA.390: TMA.OBJ MVSIO.OBJ STR.OBJ ALLOC.OBJ TMA.LKD
 	MYLIB=. java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K lz390 TMA
-TMA.PRN TMA.OBJ: TMA.MLC
+TMA.PRN TMA.OBJ: TMA.MLC ALEQU.CPY
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 TMA 'SYSMAC(/home/mdw/src/z390/mac)'
 TMA.MLC: tma.s update1.pl
 	perl update1.pl -par ,,,36 -uc tma.s > TMA.MLC
