@@ -183,6 +183,7 @@ gr10 equ *
  ltr u,u
  la u,0
  bne gr10
+gr15 equ *
  xr p,p	failed; return 0 ptr
  b al94	and rc=4
 gr20 equ *
@@ -191,13 +192,7 @@ gr20 equ *
  lr 15,13
  bal 14,alfree
  ltr pp,1	int result was pp
- bne gr60
-*
- xr p,p
- xr pp,pp
- b gr90
-*
-gr60 equ *
+ be gr15
  l p,0(pp)
  ltr p,p
  bne gr65
@@ -215,7 +210,7 @@ gr65 equ *
  bne gr90
  st p,firstp		q-firstp = p
 gr90 equ *
- b al11
+ b al60
 *
 * intalloc
 * pass:
@@ -233,22 +228,22 @@ intalloc equ *
  la u,align
  ar lena,u	lena += ALIGN
  lcr u,u
- la pp,freelist lr 10,2	pp = &q->freelist
+ la pp,freelist	pp = &q->freelist
  bctr u,0
  nr lena,u	lena &= ~ALIGN
  l p,freelist	for (p = q->freelist;
-* L40
- ltr p,p	p != 0
- be intgrow
-al60 equ *	L42
+ b al20
+al10 equ *	L42
  c lena,4(p)	if (p->lena >= lena) break
- bnh al20 
+ bnh al60 
  lr pp,p	pp = &p->next
-al11 equ *	here from intgrow
- ltr pp,pp	if (!pp) return 0
- be al90
  l p,0(pp)	p = *pp
-al20 equ *	L41
+* L40
+al20 equ *
+ ltr p,p	p != 0
+ bne al10
+ b intgrow
+al60 equ *	L41
  l u,4(p)	p->lena - lena
  la q,bloblen-1
  sr u,lena
@@ -260,10 +255,10 @@ al20 equ *	L41
  st t,0(q)	q->next = p->next
  st u,4(q)	q->lena = p->lena - lena
  st q,0(pp)	*pp = q
- b al30	} else {
+ b al80	} else {
 al70 equ *	L44
  st t,0(pp)		*pp = p->next; }
-al30 equ *	L45
+al80 equ *	L45
  st lena,0(p)	*r = lena
  l u,freesize	q->freesize -= lena
  sr u,lena
