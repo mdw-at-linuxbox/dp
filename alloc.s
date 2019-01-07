@@ -190,6 +190,20 @@ gr20 equ *
  lr 0,t
  lr 15,13
  bal 14,alfree
+ ltr pp,1	int result was pp
+ bne gr60
+*
+ xr p,p
+ xr pp,pp
+ b gr90
+*
+gr60 equ *
+ l p,0(pp)
+ ltr p,p
+ bne gr65
+ dc y(0)
+gr65 equ *
+ lr p,u
  lr u,p		lastp = p+t
  ar u,t
  st u,lastp
