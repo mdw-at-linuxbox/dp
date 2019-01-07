@@ -1,4 +1,4 @@
-all: DP4.390
+all: DP4.390 TMA.390
 ## DP1.390 DP2.390 DP3.390
 #
 #  d p 1
@@ -36,6 +36,15 @@ DP4.PRN DP4.OBJ: DP4.MLC
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 DP4 'SYSMAC(/home/mdw/src/z390/mac)'
 DP4.MLC: dp4.s update1.pl
 	perl update1.pl -par ,,,36 -uc dp4.s > DP4.MLC
+#
+#  t m a
+#
+TMA.390: TMA.OBJ MVSIO.OBJ STR.OBJ ALLOC.OBJ TMA.LKD
+	MYLIB=. java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K lz390 TMA
+TMA.PRN TMA.OBJ: TMA.MLC
+	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 TMA 'SYSMAC(/home/mdw/src/z390/mac)'
+TMA.MLC: tma.s update1.pl
+	perl update1.pl -par ,,,36 -uc tma.s > TMA.MLC
 #
 # support library
 #
