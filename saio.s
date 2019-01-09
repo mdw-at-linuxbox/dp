@@ -31,6 +31,8 @@ startup equ *
  st 0,mypool+(firstp-pool)
  la 13,mywork
  using work,13
+ st 13,workptr
+ xc pgntsv(8),pgntsv
  la 1,worklen
  la 0,3
  l 15,=v(getspace)
@@ -39,18 +41,18 @@ startup equ *
  lr 13,1
  using work,13
 *
- l 15,=V(ioinit)
+ l 15,=A(ioinit)
  balr 14,15
  l 15,=V(main)
  balr 14,15
  st 0,20(13)
- l 15,=V(iofini)
+ l 15,=A(iofini)
  balr 14,15
 *
  lpsw diswait
-diswait ds 0d
- dc x'0002',h'0',a(0)
+diswait ds 0d,x'0002',h'0',a(0)
  drop 12
+ drop 13
  cnop 0,4
 *
 * getspace
@@ -102,7 +104,21 @@ mygrow ds 0f
 * initialize io units
 *
 ioinit ds 0d
+ using *,15
+ stm 2,3,28(13)
+ la 3,exnpsw
+ la 2,5
+ l 0,=X'00020000'
+ l 1,=X'eeeeee'
+ stm 0,1,exnpsw
+ mvc exnpsw+8(32),exnpsw
+ sll 0,1
+ la 1,prgint
+ stm 0,1,pgnpsw
+ lm 2,4,28(13)
  br 14
+ drop 15
+ b
 *
 * read input
 * from mts d1.0 file #16 (bsload)
@@ -300,137 +316,73 @@ iofini ds 0d
 *
 * mts primitive to trap program interrupts
 * on entry,
+* modelled after mts d1.0
 * 0 = handler
 * 1 = save area
 * if handler is 0 that means reset trap
 * if first byte of save area is FF that
 * means load context & resume.
 *
-* to re-enter code we have to cause another exception.
-*
 pgnttrp ds 0d
- aif (1).nope
- using *,3
-*
- stm 14,3,12(13)
- lr 3,15
- lr 15,1
- tm 0(15),x'ff'
- bno pt10
- la 1,finpi	ok we want to re-enter the original code
- espie set,(1),(7),param=(15)	to do that we need to cause
- bcr 0,1	another exception.  So trapping data exception
- bcr 0,1
- bcr 0,1
-*
-* dr 15,15	should do spec exception
-*  but actually breaks ez390 espie handler
-*  showing fault at finpi-2
-*
- cp bd1(1),bd1	ez390 espie handler worked with this.
-*
- dc y(0)	survived? die die die
-pt10 equ *
- ltr 0,0	disabling trap?
- bnz pt20
- espie reset,,
- b pt70
-pt20 equ *	enabling trap.
- st 0,4(15)	stuff handler somewhere
- la 1,onpgmint
- espie set,(1),((6,11)),param=(15)
-*
-pt70 equ *
- lm 14,3,12(13)
- drop 3
+ l 15,workptr
+ using work,15
+ stm 0,1,pgntsv
  xr 15,15
- br 14
-bd1 dc x'ffff'	this is not valid decimal packed
- cnop 0,4
-*
-* here when trap fires
-*  mts rewrites psw in bc form.  that won't work here.
-*  so, if we return an ec format pc, our caller will
-*  need to know to look in R2-R3 for the intcode.
-*
-onpgmint ds 0d
- using *,15
- using epie,1
- l 2,epieparm	2 user parm
- using ptargs,2
- xr 3,3
- l 6,ptpsw+4
- la 4,ptgprs	save user state
- la 5,16
- mvc ptpsw(8),epiepsw	psw,
-pi10 equ *
- l 0,epieg64+4(3)	registers
- st 0,0(4)
- la 3,8(3)
- la 4,4(4)
- bct 5,pi10
- st 6,epienxt1	vector here
- st 6,epieg6415+4	with r15=epa
- la 0,diehere	die if it returns
- st 0,epieg6414+4
- st 2,epieg6401+4	give it r1=user arg
- lm 2,3,epieint	fetch ilc inc1 and dxd.
- st 2,epieg6402+4	mts says don't care
- st 3,epieg6403+4	so it's fair game
- espie reset,,
  drop 15
- xr 15,15
- br 14
- drop 1
- drop 2
- cnop 0,4
-diehere ds 0d
- dc y(0)	return here to die
- bcr 0,0
- bcr 0,0
- bcr 0,0
- cnop 0,4
+ ltr 1,1
+ ber 14
 *
-* here to resume after 2nd trap
+ tm 0(1),x'ff'
+ bnor 14
+ l 0,4(1)
+ la 1,8(1)
 *
-finpi ds 0d
+ mvc trappsw(4),pgopsw
+ st 0,trappsw+4
+ lm 0,15,0(8)
+ lpsw trappsw
+** svctra
+** prgint
+** seterr = might be setxit
+*
+prgint equ *
+ stm 12,13,trapgrs
+ l 13,workptr
+ balr 12,0
+ using *,12
+ using work,13
+ mvc pgstate(8),pgopsw
+ stm 0,11,pgstate+8
+ mvc pgstate+8+4*12(8),trapgrs
+ stm 14,15,pgstate+8+4*14
+ l 15,pgntsv
+ ltr 15,15
+ bz pgnt10
+ l 1,pgntsv+4
+ mvc 0(72,1),pgstate
+ lm 12,13,pgstate+8+4*12
+ drop 12
+ drop 13
+ balr 14,15
+pgnt10 equ *
+ balr 15,0
  using *,15
- bcr 0,15	weird no-ops
- bcr 0,15	which did not help ez390
- bcr 0,15	espie with dr 15,15
- using epie,1
- l 2,epieparm	2 user parm
- using ptargs,2
- xr 3,3
- la 4,ptgprs	restore user state
- la 5,16
-fn10 equ *
- l 0,0(4)	registers
- st 0,epieg64+4(3)
- la 3,8(3)
- la 4,4(4)
- bct 5,fn10
- mvc epiepsw(8),ptpsw
- mvi epiepsw,7	fixup first byte
- espie reset,,
- drop 15
- xr 15,15
- br 14
- drop 1
- drop 2
-.nope anop
-*
+ lpsw pgnfail
+pgnfail ds 0d,x'0002',h'0',a(999)
  ltorg
 *
 mypool ds 0f
  org mypool+poollen
 mywork ds 0f
  org mywork+worklen
- ds f'00'
+ dc f'0'
 *
 work dsect
 iosave ds 18f
+pgstate ds 18f
+pgntsv ds 2f
 worklen equ *-work
+*
 ptargs dsect
 ptpsw ds 2f
 ptgprs ds 16f

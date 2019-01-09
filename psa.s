@@ -19,3 +19,7 @@ pgnpsw ds d
 mcnpssw ds d
 ionpsw ds d
 scanout ds xl256
+ org psa+512
+trappsw ds 1d
+trapgrs ds 2f
+workptr ds 1f
