@@ -109,12 +109,38 @@ sub digest_record
 	return $r;
 }
 
+sub delete_junk
+{
+	my ($list) = @_;
+	my ($skipping, $skipcount);
+	my @z;
+
+	my $ns;
+	for my $r ( @$list ) {
+		my $nextskip;
+		if ($r->{type} == END)
+		{
+			$nextskip = 1;
+		}
+		if ($r->{type} == ESD) {
+			$nextskip = 0;
+			$skipping = 0;
+		}
+		push @z, $r if !$skipping;
+		++$skipcount if $skipping;
+		$skipping = $nextskip;
+	}
+	printf STDERR "Skipped %d records\n", $skipcount if $skipcount;
+	@$list = @z;
+}
+
 sub optimize_records
 {
 	my ($list) = @_;
 	my @z;
 	my $c;
 	my ($outr, $outp, $outfoff);
+	delete_junk($list);
 	for my $r ( @$list) {
 		if ($r->{type} == ESD) {
 			my $d = $r->{data};
