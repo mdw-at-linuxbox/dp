@@ -85,16 +85,13 @@ sub digest_record
 	$id &= 0xffff;
 	$r->{type} = $x;
 	if ($x == ESD) {
-		$r->{length} = $z;
 		$r->{id} = $id;
 		$r->{data} = substr($c, 16, $z);
 	} elsif ($x == TXT) {
 		$r->{address} = $y;
-		$r->{length} = $z;
 		$r->{id} = $id;
 		$r->{data} = substr($c, 16, $z);
 	} elsif ($x == RLD) {
-		$r->{length} = $z;
 		$r->{data} = substr($c, 16, $z);
 	} elsif ($x == END) {
 		$r->{address} = $y if $y ne 0x404040;
@@ -115,6 +112,126 @@ sub digest_record
 sub optimize_records
 {
 	my ($list) = @_;
+	my @z;
+	my $c;
+	my ($outr, $outp, $outfoff);
+	for my $r ( @$list) {
+		if ($r->{type} == ESD) {
+			my $d = $r->{data};
+			my $l = length($d);
+			if ($l < 16) {
+				$d .= chr(64) x (16-$l);
+				$l = 16;
+			}
+			if (defined($c) && ($c->{type} != ESD
+					|| $c->{id} != $r->{id}
+					|| length($c->{data})+$l > $lrecl-16
+					)) {
+				push @z, $c;
+				$c = clone($r);
+				$c->{data} = $d;
+				next;
+			}
+			if (!defined($c)) {
+				$c = clone($r);
+				$c->{data} = $d;
+			} else {
+				$c->{data} .= $d;
+			}
+			next;
+		} elsif ($r->{type} == TXT) {
+			my $a = $r->{address};
+			my $d = $r->{data};
+			my $l = length($d);
+			my $count;
+			while ($l > 0) {
+				if (defined($c) && ($c->{type} != TXT
+						|| $c->{id} != $r->{id}
+						|| $c->{address} + length($c->{data})
+							!= $a
+						|| length($c->{data}) >= $lrecl-16
+						)) {
+					push @z, $c;
+					$c = clone($r);
+					$c->{address} = $a;
+					$c->{data} = "";
+				}
+				$count = ($lrecl-16) - length($c->{data});
+				$count = $l if $count > $l;
+				$c->{data} .= substr($d, 0, $count);
+			} continue {
+				$l -= $count;
+				$a += $count;
+				$d = substr($d, $count);
+			}
+			next;
+		} elsif ($r->{type} == RLD) {
+			my $d = $r->{data};
+			my $l = length($d);
+			my ($count, $oc);
+			my ($inr, $inp, $flags, $aa, $q, $item);
+			my $seq = $r->{sequence};
+			$flags = 0;
+			while ($l > 0) {
+				if (!($flags & 1)) {
+					($inr, $inp, $aa) = unpack("nnN", $d);
+					$count = 8;
+				} else {
+					$inr = $outr;
+					$inp = $outp;
+					($aa) = unpack("N", $d);
+					$count = 4;
+				}
+				$flags = ($aa>>24);
+				$aa &= 0xffffff;
+				if (!defined($outfoff) || $outr != $inr || $outp != $inp) {
+					$oc = 8;
+				} else {
+					$oc = 4;
+				}
+				if (defined($c) && ($c->{type} != RLD
+						|| length($c->{data})+$oc > $lrecl-16
+						)) {
+					push @z, $c;
+					undef $c;
+				}
+				$flags &= 254;
+				$q = ($flags << 24) | $aa;
+				$item = "";
+				$item .= pack("nn", $inr, $inp) if $oc == 8;
+				$item .= pack("N", $q);
+				if (!defined($c)) {
+					$c = {};
+					$c->{type} = RLD;
+					$c->{sequence} = $seq
+						if defined($seq);
+					undef $seq;
+					undef $outfoff;
+					$oc = 8;
+				}
+				if ($oc == 4) {
+					substr($c->{data},$outfoff,1) =
+					chr(1 | ord(substr($c->{data},$outfoff,1)));
+				}
+				$c->{data} .= $item;
+				$outfoff = length($c->{data})-4;
+				$outr = $inr;
+				$outp = $inp;
+			} continue {
+				$l -= $count;
+				$d = substr($d, $count);
+			}
+			$c->{data} .= $d;
+			next;
+		}
+		if (defined($c)) {
+			push @z, $c;
+			undef $c;
+		}
+		push @z, $r;
+	}
+	push @z, $c if defined($c);
+	@$list = @z;
 }
 
 sub format_record
