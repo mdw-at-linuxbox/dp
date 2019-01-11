@@ -7,7 +7,7 @@
 *
  entry scards,spunch
  entry pgnttrp,sercom,getspace,freespace
-saio start h'400'
+saio csect
  using psa,0
 *
 * entry point
@@ -18,7 +18,7 @@ st10 equ *
  using *,15
  b startup
  cnop 0,4
-freemem dc f'12288'
+freemem dc v(endish)
 startup equ *
  lr 12,15
  drop 15
@@ -29,7 +29,9 @@ startup equ *
  l 15,=v(initaloc)
  balr 14,15
  l 0,freemem
- st 0,mypool+(firstp-pool)
+ a 0,=F'4095'
+ n 0,=F'-4096'
+ st 0,mypool+(lastp-pool)
  st 13,workptr
  xc pgntsv(8),pgntsv
  la 1,worklen
@@ -105,19 +107,23 @@ mygrow ds 0f
 ioinit ds 0d
  using *,15
  stm 2,3,28(13)
- la 3,exnpsw
- la 2,5
- l 0,=X'00020000'
- l 1,=X'eeeeee'
- stm 0,1,exnpsw
- mvc exnpsw+8(32),exnpsw
- sll 0,1
- la 1,prgint
- stm 0,1,pgnpsw
+ mvc exnpsw(16),intproto
+ mvc svnpsw+8(24),svnpsw
+ mvc pgnpsw(8),pgtpsw
+ mvc newpsw(4),intproto
+ st 14,newpsw+4
+ xr 2,0
+ bctr 2,0
+ st 2,timer
  lm 2,4,28(13)
- br 14
+ lpsw newpsw
  drop 15
- b
+ ds 0d
+* 1st will be exnpsw, next will be default for rest.
+intproto dc x'00040000',a(helpgo)
+ dc x'0',a(hell)
+* pgnpsw is special.
+pgtpsw dc x'00000000',a(prgint)
 *
 * read input
 * from mts d1.0 file #16 (bsload)
@@ -133,17 +139,18 @@ scards ds 0d
  st 2,inccw
  mvi inccw,2
  balr 4,0
+sc10 equ *
  la 2,inccw
  st 2,thecaw
  lh 3,inunit
-sc10 equ *
+sc20 equ *
  sio 0(3)
- bc 2,sc10
+ bc 2,sc20
  bc 4,incsw
  bc 1,help
-sc20 equ *
+sc30 equ *
  tio 0(3)
- bc 3,sc20
+ bc 3,sc30
  tm thecsw+4,2
  bc 1,help
  tm thecsw+4,x'f3'
@@ -170,7 +177,7 @@ incsw tm thecsw+4,1
  b help
 *
 in2 dc f'0'
-inunit dc h'0'
+inunit dc h'12'
 inccw ccw x'2',0,x'20',80
 *
 * write output
@@ -235,7 +242,7 @@ skip la 2,skpccw
 outccw ccw 9,0,x'20',0
 skpccw ccw x'8b',0,0,1
 snsccw ccw 4,sense,x'20',1
-otunit dc h'0'
+otunit dc h'13'
 sense dc c' '
  cnop 0,4
 *
@@ -262,8 +269,8 @@ sercom ds 0d
  br 14
 *
 help equ *
- balr 15,0
- using *,15
+ balr 6,0
+ using *,6
  mvc hlpccw+1(3),=al3(hlpmsg)
  la 5,hlpccw
  mvc svstat(8),thecsw
@@ -276,6 +283,12 @@ help equ *
  drop 15
  using *,6
  lpsw helpsw
+*
+helpgo equ *
+ tm exopsw+3,64	bit 25 = external interrupt
+ bcr 1,4
+ lpsw helpsw
+*
 hell equ *
  balr 15,0
  using *,15
@@ -303,7 +316,7 @@ cons dc xl2'009'
 help3 dc c'01234567689abcdef'
 help1 ds 1h
 help2 ds 5c
-hllmsg dc c'I/O botch - failed!'
+hllmsg dc c'bad thing happened'
 hlpmsg dc c'help xxx'
 svstat ds d
 *
@@ -374,6 +387,7 @@ mypool ds 0f
  org mypool+poollen
 mywork ds 0f
  org mywork+worklen
+newpsw ds 0d,2f
  dc f'0'
 *
 work dsect
