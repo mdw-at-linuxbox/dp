@@ -10,6 +10,7 @@
 
 use common::sense;
 use Clone qw(clone);
+use Encode qw/encode decode/;
 
 my $lrecl = 72;
 my $physrecl = 80;
@@ -134,21 +135,60 @@ sub delete_junk
 	@$list = @z;
 }
 
+sub populate_estbl
+{
+	my ($estbl, $d, $id) = @_;
+	while (length($d) >= 16) {
+		my ($name, $aa, $n) = unpack("a8NN", $d);
+		my ($type, $alignment);
+		$name = decode("posix-bc", $name);
+		$name =~ s%  *%%;
+		undef $name if ($name eq "");
+		$d = substr($d, 16);
+		$type = ($aa >> 24);
+		$aa &= 0xffffff;
+		if ($aa == 0x404040) {
+			undef $aa;
+		}
+		$alignment = ($n >> 24);
+		$n &= 0xffffff;
+		if ($n eq 0x404040) {
+			undef $n;
+		}
+		my $r = {};
+		if ($type != 1) {
+			$r->{id} = $id;
+			++$id;
+		}
+		$r->{type} = $type;
+		$r->{aa} = $aa if defined($aa);
+		$r->{name} = $name if defined($name);
+		$r->{alignment} = $alignment;
+		$r->{n} = $n if defined($n);
+		if (defined($r->{id})) {
+			$estbl->{$r->{id}} = $r;
+		}
+	}
+}
+
 sub optimize_records
 {
 	my ($list) = @_;
 	my @z;
 	my $c;
 	my ($outr, $outp, $outfoff);
+	my $estbl;
 	delete_junk($list);
 	for my $r ( @$list) {
 		if ($r->{type} == ESD) {
+			$estbl ||= {};
 			my $d = $r->{data};
 			my $l = length($d);
 			if ($l < 16) {
 				$d .= chr(64) x (16-$l);
 				$l = 16;
 			}
+			populate_estbl($estbl, $d, $r->{id});
 			if (defined($c) && ($c->{type} != ESD
 					|| $c->{id} != $r->{id}
 					|| length($c->{data})+$l > $lrecl-16
@@ -195,7 +235,7 @@ sub optimize_records
 			my $d = $r->{data};
 			my $l = length($d);
 			my ($count, $oc);
-			my ($inr, $inp, $flags, $aa, $q, $item);
+			my ($inr, $inp, $flags, $aa, $rty, $q, $item);
 			my $seq = $r->{sequence};
 			$flags = 0;
 			while ($l > 0) {
@@ -222,6 +262,14 @@ sub optimize_records
 					undef $c;
 				}
 				$flags &= 254;
+				$rty = ($flags >> 4);
+				if (!$rty) {
+					my $q = $estbl->{$inr};
+# ref to ER should be V?
+					if (defined($q) && $q->{type} == 2) {
+						$flags |= (1<<4);
+					}
+				}
 				$q = ($flags << 24) | $aa;
 				$item = "";
 				$item .= pack("nn", $inr, $inp) if $oc == 8;
@@ -249,6 +297,8 @@ sub optimize_records
 			}
 			$c->{data} .= $d;
 			next;
+		} elsif ($r->{type} == END) {
+			undef $estbl;
 		}
 		if (defined($c)) {
 			push @z, $c;
