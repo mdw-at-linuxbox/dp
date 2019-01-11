@@ -23,14 +23,13 @@ startup equ *
  lr 12,15
  drop 15
  using st10,12
- la 13,mypool
- l 1,=a(mypool,mygrow)
- l 15,=v(initaloc)
- balr 15,14
- l 0,freemem
- st 0,mypool+(firstp-pool)
  la 13,mywork
  using work,13
+ la 1,=a(mypool,mygrow)
+ l 15,=v(initaloc)
+ balr 14,15
+ l 0,freemem
+ st 0,mypool+(firstp-pool)
  st 13,workptr
  xc pgntsv(8),pgntsv
  la 1,worklen
@@ -368,7 +367,7 @@ pgnt10 equ *
  balr 15,0
  using *,15
  lpsw pgnfail
-pgnfail ds 0d,x'0002',h'0',a(999)
+pgnfail dc 0d,x'0002',h'0',a(999)
  ltorg
 *
 mypool ds 0f
@@ -387,4 +386,4 @@ ptargs dsect
 ptpsw ds 2f
 ptgprs ds 16f
 pgargsln equ *-ptargs
- end
+ end saio
