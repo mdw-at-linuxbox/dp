@@ -482,6 +482,8 @@ set10 equ *
  bal 6,set70	show some results
 set40 equ *
  la 1,scargs	fetch input
+ la 2,l'inline-1
+ sth 2,inlen
  la 2,inline
  st 2,0(1)
  l 15,=V(scards)
@@ -501,7 +503,7 @@ set40 equ *
 set70 equ *
  la 1,spargs
  st 9,0(1)
- st 8,outlen
+ sth 8,outlen
 *
 * l 15,=v(sercom)
 * balr 14,15
@@ -509,12 +511,21 @@ set70 equ *
  la 1,spargs
  l 15,=V(spunch)
  balr 14,15
- br 6
+ ltr 15,15
+ bzr 6
+ oi fatal,1
 *
 * report summary
 *
 done equ *
  la 0,outline
+ tm fatal,1
+ bz dn05
+ la 1,ft10
+ l 15,=V(catstr)
+ balr 14,15
+ b dn70
+dn05 equ *
  l 1,rcount	number records read
  l 15,=V(catint)
  balr 14,15
@@ -578,11 +589,12 @@ dn40 equ *
  balr 14,15
  lr 8,0
  s 8,=F'2'	ignore trailing ", "
+dn70 equ *
  la 9,outline
  sr 8,9
  la 1,spargs	send to console
  st 9,0(1)
- st 8,outlen
+ sth 8,outlen
  l 15,=v(sercom)
  balr 14,15
 *
@@ -628,8 +640,8 @@ ot30 equ *
  balr 14,15
  dc y(0)	should never reach
 *
-inlen dc f'80'
-outlen dc f'80'
+inlen dc h'80'
+outlen dc h'80'
 lineno dc f'0'
 zero dc f'0'
 inproto dc a(0,inlen,zero,lineno)
@@ -672,6 +684,7 @@ sum0 dc C', ',X'0'
 sum2 dc C' bad record',X'0'
 sum3 dc C' operation',X'0'
 sum4 dc C' exception',X'0'
+ft10 dc C'fatal error, can''t write to punch',X'0'
  ltorg
 *
 * working storage (impure)
@@ -683,6 +696,7 @@ inline ds 81c
  ds 1f
 outline ds 250c
  ds 1f
+fatal ds 1f
 word1 ds 1f
 word2 ds 1f
 word3 ds 1f

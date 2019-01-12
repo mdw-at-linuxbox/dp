@@ -154,7 +154,7 @@ sc30 equ *
  tm thecsw+4,2
  bc 1,help
  tm thecsw+4,x'f3'
- bc 5,hell
+ bc 5,incsw	hercules reports eof here
  l 2,in2
  la 2,1(0,2)
  st 2,in2
@@ -192,7 +192,7 @@ spunch ds 0d
  stm 0,12,20(13)
  l 2,0(0,1)
  st 2,outccw
- mvi outccw,9
+ mvi outccw,1
  l 2,4(0,1)
  lh 2,0(0,2)
  sth 2,outccw+6
@@ -210,8 +210,8 @@ sp20 equ *
  bc 3,sp20
  tm thecsw+4,2
  bc 1,outsns
- tm thecsw+4,1
- bc 1,skip
+ tm thecsw+4,1	left-over from printer
+ bc 1,skip	probably not valid here.
 outlv lm 0,12,20(13)
  xr 15,15
  br 14
@@ -232,14 +232,14 @@ sp60 equ *
  tm sense,254
  bcr 8,4
  b help
-skip la 2,skpccw
- st 2,thecaw
- sio 0(3)
+skip la 2,skpccw	wrong; this is not
+ st 2,thecaw	a printer.  hope it can't
+ sio 0(3)	happen
  bc 3,skip
  tm thecsw+4,16
  bc 1,skip
  br 4
-outccw ccw 9,0,x'20',0
+outccw ccw 1,0,x'20',0
 skpccw ccw x'8b',0,0,1
 snsccw ccw 4,sense,x'20',1
 otunit dc h'13'
@@ -308,12 +308,12 @@ sr20 equ *
  tio 0(7)
  bc 7,sr20
  br 6
-helpsw dc 0d,x'0002000000001111'
-hllpsw dc 0d,x'0002000000001111'
+helpsw dc 0d,x'010200000000feed'
+hllpsw dc 0d,x'000000000000dead'
 hllccw ccw 9,hllmsg,x'20',l'hllmsg
 hlpccw ccw 9,0,x'20',10
 cons dc xl2'009'
-help3 dc c'01234567689abcdef'
+help3 dc c'0123456789abcdef'
 help1 ds 1h
 help2 ds 5c
 hllmsg dc c'bad thing happened'
