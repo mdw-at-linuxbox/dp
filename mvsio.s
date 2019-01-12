@@ -218,7 +218,7 @@ sercom ds 0d
  using wtwork,13
 *
  l 8,4(11)
- lh 8,2(8)
+ lh 8,0(8)
  l 9,0(11)
  xc wtorec+2(2),wtorec+2
  lr 7,8
