@@ -163,12 +163,13 @@ sc30 equ *
  la 2,80
  l 3,4(0,1)
  sth 2,0(0,3)
- xr 15,15
+ xr 2,2
 sc70 equ *
+ lr 15,2
  lm 0,12,20(13)
  br 14
 ineof equ *
- la 15,4
+ la 2,4
  b sc70
 incsw tm thecsw+4,1
  bc 1,ineof
