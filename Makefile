@@ -1,4 +1,4 @@
-all: DP4.390 TMA.390
+all: DP4.390 TMA.390 SAIO.OBJ
 ## DP1.390 DP2.390 DP3.390
 #
 #  d p 1
