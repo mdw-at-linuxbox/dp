@@ -118,12 +118,6 @@ ioinit ds 0d
  lm 2,4,28(13)
  lpsw newpsw
  drop 15
- ds 0d
-* 1st will be exnpsw, next will be default for rest.
-intproto dc x'00040000',a(helpgo)
- dc x'0',a(hell)
-* pgnpsw is special.
-pgtpsw dc x'00000000',a(prgint)
 *
 * read input
 * from mts d1.0 file #16 (bsload)
@@ -348,11 +342,10 @@ pgnttrp ds 0d
  tm 0(1),x'ff'
  bnor 14
  l 0,4(1)
- la 1,8(1)
 *
- mvc trappsw(4),pgopsw
+ mvc trappsw(4),intproto
  st 0,trappsw+4
- lm 0,15,0(8)
+ lm 0,15,8(1)
  lpsw trappsw
 ** svctra
 ** prgint
@@ -369,9 +362,12 @@ prgint equ *
  mvc pgstate+8+4*12(8),trapgrs
  stm 14,15,pgstate+8+4*14
  l 15,pgntsv
+ l 1,pgntsv+4
+ xc pgntsv(8),pgntsv
  ltr 15,15
  bz pgnt10
- l 1,pgntsv+4
+ ltr 1,1
+ bz pgnt10
  mvc 0(72,1),pgstate
  lm 12,13,pgstate+8+4*12
  drop 12
@@ -381,7 +377,13 @@ pgnt10 equ *
  balr 15,0
  using *,15
  lpsw pgnfail
+ ds 0d
 pgnfail dc 0d,x'0002',h'0',a(999)
+* 1st will be exnpsw, next will be default for rest.
+intproto dc x'00040000',a(helpgo)
+ dc x'0',a(hell)
+* pgnpsw is special.
+pgtpsw dc x'00000000',a(prgint)
  ltorg
 *
 mypool ds 0f
