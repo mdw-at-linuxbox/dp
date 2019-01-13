@@ -22,6 +22,7 @@ main equ *
  lr 13,1
  using work,13
  xc counts(countln),counts
+ mvi fatal,0
 *
 * get an input record, split it up
 *
@@ -378,12 +379,16 @@ pr40 equ *
  l 15,=V(catstr)
  balr 14,15
  bal 3,getiar
- s 1,=a(extbl)
+ l 2,=a(extbl)
+ l 3,=x'00ffffff'
+ nr 1,3
+ nr 2,3
+ sr 1,2
  bnl pr45
  s 0,=f'3'
  lr 2,0
  mvi 0(2),C'+'
- s 1,=a(extbl-do10)
+ a 1,=a(extbl-do10)
  be pr48		if it's not do10
  bl pr45
  la 0,1(2)
@@ -626,6 +631,8 @@ ontrap equ *
  lr 13,1	and work
  s 13,=a(trapsave-work)
  using work,13
+ tm trapflag+3,255	already got exception?
+ bno ot90
  stm 1,3,trapflag
  lr 2,1	copy trap'd registers
  la 1,traprest
@@ -638,6 +645,7 @@ ontrap equ *
 ot30 equ *
  mvi 0(1),x'ff'	flag to resume exec
  balr 14,15
+ot90 equ *
  dc y(0)	should never reach
 *
 inlen dc h'80'
