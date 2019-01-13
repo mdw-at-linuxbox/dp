@@ -348,7 +348,7 @@ do60 equ *
  lr 4,0	report ilc
  mvc 0(lab9len,4),lab9
  bal 3,getilc
- c 1,=f'4'	if it's not 4
+ c 1,=f'2'	if it's not 4 bytes
  be pr25
  la 0,lab9len(4)
  l 15,=V(catint)
@@ -380,9 +380,9 @@ pr40 equ *
  balr 14,15
  bal 3,getiar
  l 2,=a(extbl)
- l 3,=x'00ffffff'
- nr 1,3
- nr 2,3
+* l 3,=x'00ffffff'
+* nr 1,3
+* nr 2,3
  sr 1,2
  bnl pr45
  s 0,=f'3'
@@ -443,8 +443,8 @@ gx10 equ *
 *
 getiar equ *
  l 1,trapsave+4
- tm trapsave+1,8	EC bit set?
  n 1,=X'7fffffff'
+ tm trapsave+1,8	EC bit set?
  bnzr 3
  n 1,=X'00ffffff'
  br 3
@@ -453,18 +453,16 @@ getiar equ *
 * pass 3=ret addr
 * return: ilc in 1 (should be: 0,2,4,6)
 getilc equ *
- ltr 3,3
- bcr 0,3
- ltr 3,3
  xr 1,1
  tm trapsave+1,8	EC bit set?
  bz gl10
  ic 1,trapflag+5	ilc came back in r2 too
+ srl 1,1
  br 3
 gl10 equ *
  ic 1,trapsave+4	BC mode ilc
- srl 1,5
- n 1,=f'6'
+ srl 1,6
+ n 1,=f'3'
  br 3
 *
 * co-routine
