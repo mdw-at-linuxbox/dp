@@ -367,7 +367,7 @@ help equ *
  la 5,hlpccw
  mvc svstat(8),thecsw
  sth 3,help1  
- mvc help1+2(2),=x'4321'
+ mvc help1+2(2),svstat+4
  unpk help2(9),help1(5)
  tr help2(8),help3-240
  mvc hlpmsg+5(3),help2+1
@@ -377,8 +377,17 @@ help equ *
  lpsw helpsw
 *
 helpgo equ *
+ aif ('&sysparm' eq 'I390').e390
  tm exopsw+3,64	bit 25 = external interrupt
  bcr 1,4
+ ago .extoend
+.e390 anop
+ mvc trappsw(1),exicod
+ oc trappsw(1),exicod+1
+ cli trappsw,x'40'
+ bzr 4
+ ago .extoend
+.extoend anop
  lpsw helpsw
 *
  drop 8
