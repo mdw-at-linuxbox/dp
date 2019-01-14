@@ -7,12 +7,7 @@ svopsw ds d
 pgopsw ds d
 mcopssw ds d
 ioopsw ds d
- org psa+64
-thecsw ds d
-thecaw ds f
- ds f
-timer ds f
- ds f
+ org psa+88
 exnpsw ds d
 svnpsw ds d
 pgnpsw ds d
@@ -21,6 +16,12 @@ ionpsw ds d
 scanout ds xl256
  aif ('&sysparm' eq 'I390').p390
  aif ('&sysparm' eq 'I2067').p2067
+ org psa+64
+thecsw ds d
+thecaw ds f
+ ds f
+timer ds f
+ ds f
  ago .psaend
 .p2067 anop
 **

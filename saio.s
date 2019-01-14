@@ -105,16 +105,49 @@ mygrow ds 0f
 *
 ioinit ds 0d
  using *,15
- stm 2,3,28(13)
+ stm 2,5,28(13)
  mvc exnpsw(16),intproto
  mvc svnpsw+8(24),svnpsw
  mvc pgnpsw(8),pgtpsw
  mvc newpsw(4),intproto+8
  st 14,newpsw+4
- xr 2,0
+ aif ('&sysparm' eq 'I390').n390
+ xr 2,0		* 360: max out timer
  bctr 2,0
  st 2,timer
- lm 2,4,28(13)
+ ago .nend
+.n390 anop
+ mvi newpsw+4,0	must clear high byte for EC mode psw
+ l 3,workptr
+ using work,3
+ xc myorb(32),myorb
+ la 1,x'1ff'	form x'ff80'
+ sll 1,7
+ sth 1,myorb+6	orb lpm, use any path
+ l 1,=f'65535'
+nt10 equ *
+ la 1,1(1)
+ stsch myschib
+ bo nt40
+ la 4,otsubch
+ clc myschib+6(2),otunit
+ bz nt20
+ la 4,insubch
+ clc myschib+6(2),inunit
+ bz nt20
+ la 4,cnsubch
+ clc myschib+6(2),cons
+ bnz nt10
+nt20 equ *
+ st 1,0(4)
+ oi myschib+5,128
+ msch myschib
+ b nt10
+nt40 equ *
+ drop 3
+ ago .nend
+.nend anop
+ lm 2,5,28(13)
  lpsw newpsw
  drop 15
 *
@@ -132,11 +165,13 @@ scards ds 0d
  st 2,inccw
  mvi inccw,2
  balr 4,0
-sc10 equ *
+ lh 3,inunit
+ l 5,workptr
+ using work,5
+sc20 equ *
+ aif ('&sysparm' eq 'I390').s390
  la 2,inccw
  st 2,thecaw
- lh 3,inunit
-sc20 equ *
  sio 0(3)
  bc 2,sc20
  bc 4,incsw
@@ -148,6 +183,25 @@ sc30 equ *
  bc 1,help
  tm thecsw+4,x'f3'
  bc 5,incsw	hercules reports eof here
+ ago .scend
+.s390 anop
+ la 2,inccw
+ st 2,myorb+8
+ l 1,insubch
+ ssch myorb
+ bc 2,sc20
+ bc 4,incsw
+ bc 1,help
+sc30 equ *
+ tsch myirb
+ bc 3,sc30
+ tm thecsw+4,2
+ bc 1,help
+ tm thecsw+4,x'f3'
+ bc 5,incsw	hercules reports eof here
+ ago .scend
+.scend anop
+ l 1,24(13)
  l 2,in2
  la 2,1(0,2)
  st 2,in2
@@ -169,6 +223,7 @@ incsw tm thecsw+4,1
  tm thecsw+4,16
  bcr 1,4
  b help
+ drop 5
 *
 in2 dc f'0'
 inunit dc h'12'
@@ -183,6 +238,8 @@ inccw ccw x'2',0,x'20',80
 *
 spunch ds 0d
  using *,15
+ l 5,workptr
+ using work,5
  stm 0,12,20(13)
  l 2,0(0,1)
  st 2,outccw
@@ -191,10 +248,18 @@ spunch ds 0d
  lh 2,0(0,2)
  sth 2,outccw+6
  balr 4,0
- la 2,outccw
- st 2,thecaw
  lh 3,otunit
+sp05 equ *
+ xr 8,8
+ la 2,outccw
+ bal 7,sp10
+ l 1,24(13)
+ lm 0,12,20(13)
+ xr 15,15
+ br 14
 sp10 equ *
+ aif ('&sysparm' eq 'I390').u390
+ st 2,thecaw
  sio 0(3)
  bc 2,sp10
  bc 4,outcsw
@@ -206,9 +271,24 @@ sp20 equ *
  bc 1,outsns
  tm thecsw+4,1	left-over from printer
  bc 1,skip	probably not valid here.
-outlv lm 0,12,20(13)
- xr 15,15
- br 14
+ ago .puend
+.u390 anop
+ st 2,myorb+8
+ l 1,otsubch
+ ssch myorb
+ bc 2,sp10
+ bc 4,outcsw
+ bc 1,help
+sp20 equ *
+ tsch myirb
+ bc 3,sp20
+ tm thecsw+4,2
+ bc 1,outsns
+ tm thecsw+4,1	left-over from printer
+ bc 1,skip	probably not valid here.
+ ago .puend
+.puend anop
+ br 7
 outcsw tm thecsw+4,2
  bc 1,outsns
  tm thecsw+4,1
@@ -217,22 +297,22 @@ outcsw tm thecsw+4,2
  bcr 1,4
  b help
 outsns la 2,snsccw
- st 2,thecaw
- sio 0(3)
- bc 7,outsns
-sp60 equ *
- tio 0(3)
- bc 7,sp60
- tm sense,254
- bcr 8,4
- b help
+ ltr 8,8
+ bnzr 4
+ lr 9,2
+ lr 8,7
+ bal 7,sp10
+ lr 2,9
+ br 8
 skip la 2,skpccw	wrong; this is not
- st 2,thecaw	a printer.  hope it can't
- sio 0(3)	happen
- bc 3,skip
- tm thecsw+4,16
- bc 1,skip
- br 4
+ ltr 8,8
+ bnzr 4
+ lr 9,2
+ lr 8,7		a printer.  hope it can't
+ bal 7,sp10	happen
+ lr 2,9
+ br 8
+ drop 5
 outccw ccw 1,0,x'20',0
 skpccw ccw x'8b',0,0,1
 snsccw ccw 4,sense,x'20',1
@@ -261,20 +341,38 @@ sercom ds 0d
  lm 0,12,20(13)
  xr 15,15
  br 14
+ drop 15
+*
+* uses,
+*  4 = address to branch back to
+*  3 = unit # that needs help
+* trashes:
+*  1
+*  6
+*  7
+*  8
+*  9
+* preserves:
+*  13
+*  15
 *
 help equ *
  balr 6,0
  using *,6
+ l 8,workptr
+ using work,8
  mvc hlpccw+1(3),=al3(hlpmsg)
+ la 5,hlpmsgl
+ sth 5,hlpccw+6
  la 5,hlpccw
  mvc svstat(8),thecsw
  sth 3,help1  
- unpk help2(5),help1(3)
+ mvc help1+2(2),=x'4321'
+ unpk help2(9),help1(5)
+ tr help2(8),help3-240
  mvc hlpmsg+5(3),help2+1
- nc hlpmsg+5(3),=X'0f0f0f'
- tr hlpmsg+5(3),help3
+ mvc hlpmsg+9(4),help2+4
  bal 6,type
- drop 15
  using *,6
  lpsw helpsw
 *
@@ -283,6 +381,7 @@ helpgo equ *
  bcr 1,4
  lpsw helpsw
 *
+ drop 8
 hell equ *
  balr 15,0
  using *,15
@@ -291,26 +390,34 @@ hell equ *
  drop 15
  using *,6
  lpsw hllpsw
+ drop 6
 type equ *
+ balr 9,0
+ using *,9
+ aif ('&sysparm' eq 'I390').h390
  st 5,thecaw
- balr 5,0
- using *,5
  lh 7,cons
  sio 0(7)
- bc 7,type
+ bcr 7,9
 sr20 equ *
  tio 0(7)
  bc 7,sr20
+ ago .hlend
+.h390 anop
+ l 8,workptr
+ using work,8
+ st 5,myorb+8
+ l 1,cnsubch
+ ssch myorb
+ bcr 7,9
+sr20 equ *
+ tsch myirb
+ bc 7,sr20
+ drop 8
+ ago .hlend
+.hlend anop
  br 6
-hllccw ccw 9,hllmsg,x'20',l'hllmsg
-hlpccw ccw 9,0,x'20',10
-cons dc xl2'009'
-help3 dc c'0123456789abcdef'
-help1 ds 1h
-help2 ds 5c
-hllmsg dc c'bad thing happened'
-hlpmsg dc c'help xxx'
-svstat ds d
+ drop 9
 *
 *
 * finish with io
@@ -340,9 +447,12 @@ pgnttrp ds 0d
  bnor 14
  l 0,4(1)
 *
+ balr 4,0
+ using *,4
  mvc trappsw(4),intproto+8
  st 0,trappsw+4
  lm 0,15,8(1)
+ drop 4
  lpsw trappsw
 *
 * handle program interrupt.
@@ -381,6 +491,7 @@ pgnt10 equ *
  balr 15,0
  using *,15
  lpsw pgnfail
+ drop 15
  aif ('&sysparm' eq 'I390').i390
 **
 * 360 bc mode
@@ -411,7 +522,19 @@ pgtpsw dc x'00080000',a(prgint)
  ago .vecend
 .vecend anop
 *
+hllccw ccw 9,hllmsg,x'20',l'hllmsg
+hlpccw ccw 9,0,x'20',10
+cons dc xl2'009'
+help3 dc c'0123456789abcdef'
+help1 ds 1f
+help2 ds 9c
+hllmsg dc c'bad thing happened'
+hlpmsg dc c'help xxx yyyy'
+hlpmsgl equ *-hlpmsg
+svstat ds d
+*
 sysarch dc C'&sysparm'
+*
  ltorg
 *
 mypool ds 0f
@@ -423,6 +546,18 @@ newpsw ds 0d,2f
 *
 work dsect
 iosave ds 18f
+ aif ('&sysparm' eq 'I390').w390
+ ago .workend
+.w390 anop
+myschib ds 12f
+myorb ds 8f
+thecsw equ myirb+4
+myirb ds 24f
+otsubch ds f
+insubch ds f
+cnsubch ds f
+ ago .workend
+.workend anop
 pgstate ds 18f
 pgntsv ds 2f
 worklen equ *-work
