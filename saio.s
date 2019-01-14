@@ -51,7 +51,6 @@ startup equ *
  balr 14,15
 *
  lpsw diswait
-diswait ds 0d,x'0002',h'0',a(0)
  drop 12
  drop 13
  cnop 0,4
@@ -110,7 +109,7 @@ ioinit ds 0d
  mvc exnpsw(16),intproto
  mvc svnpsw+8(24),svnpsw
  mvc pgnpsw(8),pgtpsw
- mvc newpsw(4),intproto
+ mvc newpsw(4),intproto+8
  st 14,newpsw+4
  xr 2,0
  bctr 2,0
@@ -303,8 +302,6 @@ sr20 equ *
  tio 0(7)
  bc 7,sr20
  br 6
-helpsw dc 0d,x'010200000000feed'
-hllpsw dc 0d,x'000000000000dead'
 hllccw ccw 9,hllmsg,x'20',l'hllmsg
 hlpccw ccw 9,0,x'20',10
 cons dc xl2'009'
@@ -343,13 +340,15 @@ pgnttrp ds 0d
  bnor 14
  l 0,4(1)
 *
- mvc trappsw(4),intproto
+ mvc trappsw(4),intproto+8
  st 0,trappsw+4
  lm 0,15,8(1)
  lpsw trappsw
-** svctra
-** prgint
-** seterr = might be setxit
+*
+* handle program interrupt.
+*
+** extension for esa/390 / ez390:
+***	in EC mode: return ilc|intcode in R2, dxc in R3.
 *
 prgint equ *
  stm 12,13,trapgrs
@@ -361,6 +360,11 @@ prgint equ *
  stm 0,11,pgstate+8
  mvc pgstate+8+4*12(8),trapgrs
  stm 14,15,pgstate+8+4*14
+ aif ('&sysparm' eq 'I390').g390
+ ago .gend
+.g390 anop
+ lm 2,3,pgicod-2	pick up ilc,intcode,dxc
+.gend anop
  l 15,pgntsv
  l 1,pgntsv+4
  xc pgntsv(8),pgntsv
@@ -377,13 +381,37 @@ pgnt10 equ *
  balr 15,0
  using *,15
  lpsw pgnfail
- ds 0d
+ aif ('&sysparm' eq 'I390').i390
+**
+* 360 bc mode
+**
+diswait ds 0d,x'0002',h'0',a(0)
+hllpsw dc 0d,x'000200000000dead'
+helpsw dc 0d,x'010200000000feed'
 pgnfail dc 0d,x'0002',h'0',a(999)
 * 1st will be exnpsw, next will be default for rest.
-intproto dc x'00040000',a(helpgo)
+intproto dc x'0',a(helpgo)
  dc x'0',a(hell)
 * pgnpsw is special.
-pgtpsw dc x'00000000',a(prgint)
+pgtpsw dc x'0',a(prgint)
+ ago .vecend
+**
+* esa/390
+**
+.i390 anop
+diswait ds 0d,x'000a',h'0',a(0)
+hllpsw dc 0d,x'000a00000000dead'
+helpsw dc 0d,x'010a00000000feed'
+pgnfail dc 0d,x'000a',h'0',a(999)
+* 1st will be exnpsw, next will be default for rest.
+intproto dc x'00080000',a(helpgo)
+ dc x'00080000',a(hell)
+* pgnpsw is special.
+pgtpsw dc x'00080000',a(prgint)
+ ago .vecend
+.vecend anop
+*
+sysarch dc C'&sysparm'
  ltorg
 *
 mypool ds 0f

@@ -1,4 +1,4 @@
-all: DP4.390 TMA.390 SAIO.OBJ
+all: DP4.390 TMA.390 SAIO.OBJ ALLOC.OBJ
 ## DP1.390 DP2.390 DP3.390
 #
 #  d p 1
@@ -37,6 +37,11 @@ DP4.PRN DP4.OBJ: DP4.MLC
 DP4.MLC: dp4.s update1.pl
 	perl update1.pl -par ,,,36 -uc dp4.s > DP4.MLC
 #
+#  d p 4 x a
+#
+DP4XA.390: DP4.OBJ SAIO390.OBJ STR.OBJ PDC.OBJ ALLOC.OBJ DP4XA.LKD
+	MYLIB=. java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K lz390 DP4XA
+#
 #  t m a
 #
 TMA.390: TMA.OBJ MVSIO.OBJ STR.OBJ ALLOC.OBJ TMA.LKD
@@ -67,6 +72,8 @@ ENDISH.MLC: endish.s update1.pl
 #
 # standalone support
 #
+SAIO390.PRN SAIO390.OBJ: SAIO390.MLC S360.MA ALEQU.CPY PSA.CPY SAIO.MLC
+	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 SAIO390 'PROFILE(S360.MA)' 'SYSPARM(I390)'
 SAIO.PRN SAIO.OBJ: SAIO.MLC S360.MA ALEQU.CPY PSA.CPY
 	java -cp ~/src/z390/z390.jar -Xrs -Xms150000K -Xmx150000K mz390 SAIO 'PROFILE(S360.MA)'
 SAIO.MLC: saio.s update1.pl
@@ -79,3 +86,7 @@ ALEQU.CPY: alequ.s update1.pl
 	perl update1.pl -par ,,,36 -uc alequ.s > ALEQU.CPY
 PSA.CPY: psa.s update1.pl
 	perl update1.pl -par ,,,36 -uc psa.s > PSA.CPY
+
+#
+SAIO390.MLC:
+	ln -s SAIO.MLC SAIO390.MLC
