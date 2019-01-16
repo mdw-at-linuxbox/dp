@@ -189,9 +189,13 @@ sc30 equ *
  st 2,myorb+8
  l 1,insubch
  ssch myorb
- bc 2,sc20
- bc 4,incsw
- bc 1,help
+ bc 2,sc20	busy, retry
+ bc 4,sc30	status pending
+ bc 1,help	not operational
+sc25 la 3,30
+sc27 tpi ivdata	on ssch 'started'
+ bnz sc30	has ivdata
+ bct 3,sc27
 sc30 equ *
  tsch myirb
  bc 3,sc30
@@ -264,38 +268,43 @@ sp10 equ *
  bc 2,sp10
  bc 4,outcsw
  bc 1,help
-sp20 equ *
+sp30 equ *
  tio 0(3)
- bc 3,sp20
+ bc 3,sp30
  tm thecsw+4,2
  bc 1,outsns
- tm thecsw+4,1	left-over from printer
- bc 1,skip	probably not valid here.
- ago .puend
-.u390 anop
- st 2,myorb+8
- l 1,otsubch
- ssch myorb
- bc 2,sp10
- bc 4,outcsw
- bc 1,help
-sp20 equ *
- tsch myirb
- bc 3,sp20
- tm thecsw+4,2
- bc 1,outsns
- tm thecsw+4,1	left-over from printer
- bc 1,skip	probably not valid here.
- ago .puend
-.puend anop
  br 7
 outcsw tm thecsw+4,2
  bc 1,outsns
- tm thecsw+4,1
- bc 1,skip
- tm thecsw+4,16
+ tm thecsw+4,16	busy?
  bcr 1,4
  b help
+ ago .puend
+.u390 anop
+ l 1,otsubch
+ tsch myirb
+ bc 3,hell	not operational = no recovery
+ st 2,myorb+8
+ ssch myorb
+ bcr 8,7	started, done
+ bc 4,sp30	status pending
+ bc 1,help	not operational
+sp25 la 3,30
+sp26 tpi ivdata	else busy, wait for
+ bnz sp27	previous operation
+ bct 3,sp26
+sp27 equ *
+ b sp10	then start this one
+sp30 equ *	status pending
+ tsch myirb
+ bcr 3,4
+ tm thecsw+4,2
+ bc 1,outsns
+ tm thecsw+4,16	busy?
+ bcr 1,4
+ br 7
+ ago .puend
+.puend anop
 outsns la 2,snsccw
  ltr 8,8
  bnzr 4
@@ -304,20 +313,11 @@ outsns la 2,snsccw
  bal 7,sp10
  lr 2,9
  br 8
-skip la 2,skpccw	wrong; this is not
- ltr 8,8
- bnzr 4
- lr 9,2
- lr 8,7		a printer.  hope it can't
- bal 7,sp10	happen
- lr 2,9
- br 8
  drop 5
 outccw ccw 1,0,x'20',0
-skpccw ccw x'8b',0,0,1
-snsccw ccw 4,sense,x'20',1
+snsccw ccw 4,sense,x'20',16
 otunit dc h'13'
-sense dc c' '
+sense dc 4f'0'
  cnop 0,4
 *
 * tell operator
@@ -505,7 +505,7 @@ pgnt10 equ *
 **
 * 360 bc mode
 **
-diswait ds 0d,x'0002',h'0',a(0)
+diswait dc 0d,x'0002',h'0',a(0)
 hllpsw dc 0d,x'000200000000dead'
 helpsw dc 0d,x'010200000000feed'
 pgnfail dc 0d,x'0002',h'0',a(999)
@@ -519,7 +519,7 @@ pgtpsw dc x'0',a(prgint)
 * esa/390
 **
 .i390 anop
-diswait ds 0d,x'000a',h'0',a(0)
+diswait dc 0d,x'000a',h'0',a(0)
 hllpsw dc 0d,x'000a00000000dead'
 helpsw dc 0d,x'010a00000000feed'
 pgnfail dc 0d,x'000a',h'0',a(999)
@@ -562,6 +562,7 @@ myschib ds 12f
 myorb ds 8f
 thecsw equ myirb+4
 myirb ds 24f
+ivdata ds 2f
 otsubch ds f
 insubch ds f
 cnsubch ds f
