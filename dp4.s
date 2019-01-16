@@ -431,7 +431,6 @@ getxcode equ *
  tm trapsave+1,8	EC bit set?
  bz gx10
  lh 1,trapflag+6	int code came back in r2
- s 1,=f'192'	remove x'c0'
  br 3
 gx10 equ *
  lh 1,trapsave+2	int code in BC mode psw
@@ -698,7 +697,7 @@ ft10 dc C'fatal error, can''t write to punch',X'0'
 work dsect
 dp1save ds 18f
  ds 1f
-inline ds 81c
+inline ds cl81
  ds 1f
 outline ds 250c
  ds 1f
