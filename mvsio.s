@@ -347,6 +347,7 @@ pi10 equ *
  lm 2,3,epieint	fetch ilc inc1 and dxd.
  st 2,epieg6402+4	mts says don't care
  st 3,epieg6403+4	so it's fair game
+ ni epieg6402+7,63	mvs c7 -> esa/390 7
  espie reset,,
  drop 15
  xr 15,15
