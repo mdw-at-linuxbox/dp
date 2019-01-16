@@ -1,6 +1,7 @@
 *
 * simulate mts-like environment
 * for standalone s/370
+* build with parm: 'I390' for standalone esa/390
 *
  copy alequ
  copy psa
@@ -201,10 +202,14 @@ sc30 equ *
  bc 3,sc30
  tm thecsw+4,2
  bc 1,help
- tm thecsw+4,x'f3'
+ tm thecsw+4,x'10'
+ bc 1,sc25	busy, kill more time
+ tm thecsw+4,x'e3'
  bc 5,incsw	hercules reports eof here
  ago .scend
 .scend anop
+ tm thecsw+4,x'0c'
+ bno sc30
  l 1,24(13)
  l 2,in2
  la 2,1(0,2)
@@ -236,7 +241,7 @@ inccw ccw x'2',0,x'20',80
 * write output
 * from mts d1.0 file #16 (bsload)
 * parm1 = buffer
-* parm2 = length (ignored)
+* parm2 = length
 * parm3 = modifiers (shoudd be zero, ignored)
 * parm4 = lineno (ignored)
 *
@@ -251,6 +256,7 @@ spunch ds 0d
  l 2,4(0,1)
  lh 2,0(0,2)
  sth 2,outccw+6
+ mvi 19(13),0
  balr 4,0
  lh 3,otunit
 sp05 equ *
@@ -282,27 +288,29 @@ outcsw tm thecsw+4,2
  ago .puend
 .u390 anop
  l 1,otsubch
- tsch myirb
- bc 3,hell	not operational = no recovery
  st 2,myorb+8
  ssch myorb
- bcr 8,7	started, done
+ bc 2,sp10	busy, retry
  bc 4,sp30	status pending
  bc 1,help	not operational
 sp25 la 3,30
-sp26 tpi ivdata	else busy, wait for
- bnz sp27	previous operation
+sp26 tpi ivdata	else started, wait for
+ bnz sp30	this
  bct 3,sp26
-sp27 equ *
- b sp10	then start this one
 sp30 equ *	status pending
+ lh 3,otunit
  tsch myirb
  bcr 3,4
+ oc 19(1,13),thecsw+4
  tm thecsw+4,2
  bc 1,outsns
  tm thecsw+4,16	busy?
  bcr 1,4
- br 7
+ tm 19(13),12	return if done
+ bor 7
+ tm thecsw+4,x'e3'	any other error?
+ bnz help
+ b sp25	go kill some more time
  ago .puend
 .puend anop
 outsns la 2,snsccw
