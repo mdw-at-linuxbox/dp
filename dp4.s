@@ -178,66 +178,65 @@ op60 equ *
  a 9,=f'1'
  st 9,bdcount
  la 7,badopers
- la 0,outline
- la 1,badinp	report input lineno
+ la 1,outline
+ la 0,badinp	report input lineno
  l 15,=v(catstr)
  balr 14,15
- l 1,rcount
+ l 0,rcount
  l 15,=V(catint)
  balr 14,15
- la 1,badinp2
+ la 0,badinp2
  l 15,=v(catstr)
  balr 14,15
  tm badflag,1	bad operation?
  bz op71
- la 1,badoper0
+ la 0,badoper0
  l 15,=v(catstr)
  balr 14,15
- l 1,word1
+ l 0,word1
  l 15,=v(catstr)
  balr 14,15
- lr 1,7
+ lr 0,7
  l 15,=v(catstr)
  balr 14,15
 op71 equ *
  tm badflag,64	operands way too big?
  bz op72
- la 1,badway2
+ la 0,badway2
  l 15,=v(catstr)
  balr 14,15
 op72 equ *
  tm badflag,2	operand1 bad?
  bz op74
- la 1,badoper1
+ la 0,badoper1
  l 15,=v(catstr)
  balr 14,15
- l 1,word2
+ l 0,word2
  l 15,=v(catstr)
  balr 14,15
- lr 1,7
+ lr 0,7
  l 15,=v(catstr)
  balr 14,15
 op74 equ *
  tm badflag,4	operand2 bad?
  bz op75
- la 1,badoper2
+ la 0,badoper2
  l 15,=v(catstr)
  balr 14,15
- l 1,word3
+ l 0,word3
  l 15,=v(catstr)
  balr 14,15
- lr 1,7
+ lr 0,7
  l 15,=v(catstr)
  balr 14,15
 op75 equ *
  tm badflag,128	trailing garbage?
  bz op76
- la 1,badxtra
+ la 0,badxtra
  l 15,=v(catstr)
  balr 14,15
 op76 equ *
- s 0,=F'2'	erase redundant trailing comma and nul
- lr 1,0
+ s 1,=F'2'	erase redundant trailing comma and nul
  mvc 0(3,1),=C'   '
  b op90
 *
@@ -307,74 +306,72 @@ do60 equ *
 *
 * format results to print
 *
- la 0,outline
- la 1,lab3	operation
+ la 1,outline
+ la 0,lab3	operation
  l 15,=V(catstr)
  balr 14,15
- l 1,word1
+ l 0,word1
  l 15,=V(catstr)
  balr 14,15
- la 1,lab1	operand1
+ la 0,lab1	operand1
  l 15,=V(catstr)
  balr 14,15
- la 1,operand1
- l 2,len1
+ la 2,operand1
+ l 0,len1
  l 15,=V(cathexst)
  balr 14,15
- la 1,lab2	operand2
+ la 0,lab2	operand2
  l 15,=V(catstr)
  balr 14,15
- la 1,operand2
- l 2,len2
+ la 2,operand2
+ l 0,len2
  l 15,=V(cathexst)
  balr 14,15
- la 1,lab6	operand3
+ la 0,lab6	operand3
  l 15,=V(catstr)
  balr 14,15
- la 1,operand3
- l 2,len3
+ la 2,operand3
+ l 0,len3
  l 15,=V(cathexst)
  balr 14,15
- la 1,lab7	cc
+ la 0,lab7	cc
  l 15,=V(catstr)
  balr 14,15
- lr 1,0	append cc digit
  mvc 0(1,1),cc
  mvi 1(1),0
- la 0,1(1)
+ la 1,1(1)
  tm trapflag+3,255	if an exception
  bo pr50
- lr 4,0	report ilc
- mvc 0(lab9len,4),lab9
+ mvc 0(lab9len,1),lab9
  bal 3,getilc
- c 1,=f'2'	if it's not 4 bytes
+ c 0,=f'2'	if it's not 4 bytes
  be pr25
- la 0,lab9len(4)
+ la 1,lab9len(1)
  l 15,=V(catint)
  balr 14,15
  b pr30
 pr25 equ *
- mvi 0(4),0
+ mvi 0(1),0
 pr30 equ *
  tm badflag+1,x'ff'	overflow
  bz pr40
- la 1,lab4
+ la 0,lab4
  l 15,=V(catstr)
  balr 14,15
- lh 1,badflag
+ lh 0,badflag
  l 15,=V(catint)
  balr 14,15
 pr40 equ *
  tm trapflag+3,255	exception?
  bo pr50
- la 1,lab5		report intcode
+ la 0,lab5		report intcode
  l 15,=V(catstr)
  balr 14,15
  bal 3,getxcode
  l 15,=V(catint)
  balr 14,15
- lr 4,0
- la 1,lab8		and iar
+ lr 4,1
+ la 0,lab8		and iar
  l 15,=V(catstr)
  balr 14,15
  bal 3,getiar
@@ -382,30 +379,30 @@ pr40 equ *
 * l 3,=x'00ffffff'
 * nr 1,3
 * nr 2,3
- sr 1,2
+ sr 0,2
  bnl pr45
- s 0,=f'3'
- lr 2,0
+ s 1,=f'3'
+ lr 2,1
  mvi 0(2),C'+'
- a 1,=a(extbl-do10)
+ a 0,=a(extbl-do10)
  be pr48		if it's not do10
  bl pr45
- la 0,1(2)
+ la 1,1(2)
 pr45 equ *
  l 15,=V(catint)
  balr 14,15
  b pr50
 pr48 equ *
  mvi 0(4),0	backup and nul terminate
- lr 0,4	if not reporting iar
+ lr 1,4	if not reporting iar
 pr50 equ *
 *
 * report results and loop
 *
 op90 equ *
  la 9,outline	have something to print
- lr 8,0
- mvi 0(8),C' '
+ lr 8,1
+ mvi 0(1),C' '
  sr 8,9
  b again2
 *
@@ -424,43 +421,43 @@ chkover equ *
 *
 * fetch int code from trapsave,trapflag
 * pass: 3=ret addr
-* return: code in 1
+* return: code in 0
 *
 getxcode equ *
  tm trapsave+1,8	EC bit set?
  bz gx10
- lh 1,trapflag+6	int code came back in r2
+ lh 0,trapflag+6	int code came back in r2
  br 3
 gx10 equ *
- lh 1,trapsave+2	int code in BC mode psw
+ lh 0,trapsave+2	int code in BC mode psw
  br 3
 *
 * fetch next instruction address from psw in trapsave
 * pass: 3=ret addr
-* return: code in 1
+* return: code in 0
 *
 getiar equ *
- l 1,trapsave+4
- n 1,=X'7fffffff'
+ l 0,trapsave+4
+ n 0,=X'7fffffff'
  tm trapsave+1,8	EC bit set?
  bnzr 3
- n 1,=X'00ffffff'
+ n 0,=X'00ffffff'
  br 3
 *
 * fetch ilc from trapsave,trapflag
 * pass 3=ret addr
-* return: ilc in 1 (should be: 0,2,4,6)
+* return: ilc in 0 (should be: 0,2,4,6)
 getilc equ *
- xr 1,1
+ xr 0,0
  tm trapsave+1,8	EC bit set?
  bz gl10
- ic 1,trapflag+5	ilc came back in r2 too
- srl 1,1
+ ic 0,trapflag+5	ilc came back in r2 too
+ srl 0,1
  br 3
 gl10 equ *
- ic 1,trapsave+4	BC mode ilc
- srl 1,6
- n 1,=f'3'
+ ic 0,trapsave+4	BC mode ilc
+ srl 0,6
+ n 0,=f'3'
  br 3
 *
 * co-routine
@@ -519,76 +516,72 @@ set70 equ *
 * report summary
 *
 done equ *
- la 0,outline
+ la 1,outline
  tm fatal,1
  bz dn05
- la 1,ft10
+ la 0,ft10
  l 15,=V(catstr)
  balr 14,15
  b dn70
 dn05 equ *
- l 1,rcount	number records read
+ l 0,rcount	number records read
  l 15,=V(catint)
  balr 14,15
- la 1,sum1
+ la 0,sum1
  l 15,=V(catstr)
  balr 14,15
  la 6,1
  c 6,rcount
  bz dn10
- lr 1,0
  mvi 0(1),C's'
- ar 0,6
+ ar 1,6
 dn10 equ *
- la 1,sum1a
+ la 0,sum1a
  l 15,=V(catstr)
  balr 14,15
- l 1,bdcount	bad records
+ l 0,bdcount	bad records
  l 15,=V(catint)
  balr 14,15
- la 1,sum2
+ la 0,sum2
  l 15,=V(catstr)
  balr 14,15
  c 6,bdcount
  bz dn20
- lr 1,0
  mvi 0(1),C's'
- ar 0,6
+ ar 1,6
 dn20 equ *
- la 1,sum0
+ la 0,sum0
  l 15,=V(catstr)
  balr 14,15
- l 1,opcount	operation count
+ l 0,opcount	operation count
  l 15,=V(catint)
  balr 14,15
- la 1,sum3
+ la 0,sum3
  l 15,=V(catstr)
  balr 14,15
  c 6,opcount
  bz dn30
- lr 1,0
  mvi 0(1),C's'
- ar 0,6
+ ar 1,6
 dn30 equ *
- la 1,sum0
+ la 0,sum0
  l 15,=V(catstr)
  balr 14,15
- l 1,excount	exception count
+ l 0,excount	exception count
  l 15,=V(catint)
  balr 14,15
- la 1,sum4
+ la 0,sum4
  l 15,=V(catstr)
  balr 14,15
  c 6,excount
  bz dn40
- lr 1,0
  mvi 0(1),C's'
- ar 0,6
+ ar 1,6
 dn40 equ *
- la 1,sum0
+ la 0,sum0
  l 15,=V(catstr)
  balr 14,15
- lr 8,0
+ lr 8,1
  s 8,=F'2'	ignore trailing ", "
 dn70 equ *
  la 9,outline

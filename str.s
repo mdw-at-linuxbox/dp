@@ -213,8 +213,8 @@ gi90 equ *
  drop 15
  cnop 0,4
 *
-* copy (1) to (0)
-* null-terminate (0) - advance 0 to null
+* copy (0) to (1)
+* null-terminate (1) - advance 1 to null
 *
 catstr equ *
  using *,15
@@ -223,14 +223,13 @@ catstr equ *
  xr 0,0
  la 3,1
 cs10 equ *
- ic 0,0(1)
- stc 0,0(2)
- ar 2,3
+ ic 0,0(2)
+ stc 0,0(1)
  ar 1,3
+ ar 2,3
  ltr 0,0
  bnz cs10
- lr 0,2
- sr 0,3
+ sr 1,3
  lm 2,3,28(13)
  xr 15,15
  br 14
@@ -296,8 +295,8 @@ in90 xr 0,0
  cnop 0,4
 *
 * put int
-* 1 = num
-* (0) = put printable number here
+* 0 = num
+* (1) = put printable number here
 *
 catint equ *
  using *,12
@@ -313,32 +312,32 @@ catint equ *
  using ciwork,13
 *
  l 4,4(13)
- l 2,20(4)
  l 1,24(4)
- cvd 1,p4
+ l 2,20(4)
+ cvd 2,p4
  mvc p5(p8len),p8
  ed p5(p8len-1),p4
- la 1,p5
+ la 2,p5
  la 3,1
  b ci20
 ci10 equ *
- la 1,1(1)
+ la 2,1(2)
 ci20 equ *
- cli 0(1),C' '
+ cli 0(2),C' '
  bz ci10
  tm p4+7,1
  bz ci30
- sr 1,3
- mvi 0(1),C'-'
+ sr 2,3
+ mvi 0(2),C'-'
 ci30 equ *
- ic 0,0(1)
- stc 0,0(2)
- ar 2,3
+ ic 0,0(2)
+ stc 0,0(1)
  ar 1,3
+ ar 2,3
  ltr 0,0
  bnz ci30
- sr 2,3
- st 2,20(4)
+ sr 1,3
+ st 1,24(4)
 *
  lr 1,13
  l 13,cisave+4
@@ -355,33 +354,30 @@ p8len equ *-p8
  cnop 0,4
 *
 * put hex number
-* 1= hex number
-* (0) = put printable number here, update, null terminate
+* 0= hex number
+* (1) = put printable number here, update, null terminate
 *
 cathex equ *
  using *,15
- stm 1,3,24(13)
+ stm 2,3,28(13)
 *
- lr 3,0
- la 3,20(3)
+ la 3,20(1)
  mvi 0(3),0
 cx10 equ *
  la 2,15
- nr 2,1
- la 2,hexdig(2)
+ nr 2,0
+ ar 2,15
  bctr 3,0
- mvc 0(1,3),0(2)
- srl 1,4
- n 1,=X'0fffffff'
+ mvc 0(1,3),hexdig-cathex(2)
+ srl 0,4
+ n 0,=X'0fffffff'
  bne cx10
- lr 2,0
- lr 1,0
- la 2,20(2)
+ la 2,20(1)
  sr 2,3
  ex 2,cx20
- ar 0,2
+ ar 1,2
 *
- lm 1,3,24(13)
+ lm 2,3,28(13)
  drop 15
  xr 15,15
  br 14
@@ -389,31 +385,29 @@ cx20 mvc 0(0,1),0(3)
  cnop 0,4
 *
 * put hex string
-* 1 = hex string
-* 2 = length hex string
-* (0) = put printable number here - updated
+* 2 = hex string
+* 0 = length hex string
+* (1) = put printable number here - updated
 *
 cathexst equ *
  using *,15
- stm 1,3,24(13)
+ stm 2,3,24(13)
 *
- lr 3,0
- xr 0,0
 ch10 equ *
- ic 0,0(1)
- stc 0,1(3)
- srl 0,4
- stc 0,0(3)
- nc 0(2,3),hexmask
- tr 0(2,3),hexdig
- la 3,2(3)
- la 1,1(1)
+ ic 3,0(2)
+ stc 3,1(1)
+ srl 3,4
+ stc 3,0(1)
+ nc 0(2,1),hexmask
+ tr 0(2,1),hexdig
+ la 1,2(1)
+ la 2,1(2)
 ch50 equ *
- bct 2,ch10
+ bct 0,ch10
 *
- mvi 0(3),0
- lr 0,3
- lm 1,3,24(13)
+ mvi 0(1),0
+ lr 0,1
+ lm 2,3,24(13)
  drop 15
  xr 15,15
  br 14

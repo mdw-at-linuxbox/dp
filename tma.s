@@ -65,48 +65,47 @@ oops equ *
 doprint ds 0h
  using pool,6
  la 6,mypool
- la 0,outline
- la 1,lab1
+ la 1,outline
+ la 0,lab1
  l 15,=v(catstr)
  balr 14,15
- l 1,firstp
+ l 0,firstp
  l 15,=v(cathex)
  balr 14,15
- la 1,lab2
+ la 0,lab2
  l 15,=v(catstr)
  balr 14,15
- l 1,lastp
+ l 0,lastp
  l 15,=v(cathex)
  balr 14,15
- la 1,lab3
+ la 0,lab3
  l 15,=v(catstr)
  balr 14,15
- l 1,poolsize
- s 1,freesize
+ l 0,poolsize
+ s 0,freesize
  l 15,=v(catint)
  balr 14,15
- la 1,lab4
+ la 0,lab4
  l 15,=v(catstr)
  balr 14,15
- l 1,poolsize
+ l 0,poolsize
  l 15,=v(catint)
  balr 14,15
- lr 1,0
  mvi 0(1),c'-'
- la 0,1(1)
- l 1,freesize
+ la 1,1(1)
+ l 0,freesize
  l 15,=v(catint)
  balr 14,15
- la 1,lab5
+ la 0,lab5
  l 15,=v(catstr)
  balr 14,15
 *
- la 1,outline
- st 1,spargs
- la 1,outlen
- st 1,spargs+4
- sr 0,1
- st 0,outlen
+ la 0,outlen
+ st 0,spargs+4
+ la 0,outline
+ st 0,spargs
+ sr 1,0
+ st 1,outlen
  la 1,spargs
  l 15,=a(sercom)
  balr 14,15
@@ -114,26 +113,24 @@ doprint ds 0h
  b dp30
 *
 dp20 equ *
- la 0,outline
- lr 1,0
+ la 1,outline
  mvc 0(2,1),=C'0x'
- la 0,2(1)
- lr 1,8
+ la 1,2(1)
+ lr 0,8
  l 15,=v(cathex)
  balr 14,15
- lr 1,0
  mvi 0(1),c'/'
- la 0,1(1)
- l 1,4(8)
+ la 1,1(1)
+ l 0,4(8)
  l 15,=v(catint)
  balr 14,15
 *
- la 1,outline
- st 1,spargs
- la 1,outlen
- st 1,spargs+4
- sr 0,1
- st 0,outlen
+ la 0,outlen
+ st 0,spargs+4
+ la 0,outline
+ st 0,spargs
+ sr 1,0
+ st 1,outlen
  la 1,spargs
  l 15,=a(sercom)
  balr 14,15
@@ -158,71 +155,69 @@ doalloc ds 0h
  la 1,1(1)
  l 15,=v(getint)
  balr 14,15
- lr 6,0
+ lr 9,0
  ltr 15,15
  bz al20
- la 1,alb3
+ la 0,alb3
  b al70
 al20 equ *
  l 15,=v(skipspc)
  balr 14,15
  tm 0(1),x'ff'
  bz al30
- la 1,alb4
+ la 0,alb4
  b al70
 al30 equ *
  la 0,0
- lr 1,6
+ lr 1,9
 *
  l 15,=a(getmem)
  balr 14,15
 *
  lr 8,1
- la 0,outline
- la 1,alb1
+ la 1,outline
+ la 0,alb1
  ltr 15,15
  bne al40
- la 1,alb2
+ la 0,alb2
  l 15,=v(catstr)
  balr 14,15
- lr 1,8
+ lr 0,8
  l 15,=v(cathex)
  balr 14,15
- lr 1,0
  mvi 0(1),c'/'
- la 0,1(1)
- l 1,0(8)
+ la 1,1(1)
+ l 0,0(8)
  l 15,=v(catint)
  balr 14,15
  b al90
 al40 equ *
  l 15,=v(catstr)
  balr 14,15
- lr 1,6
+ lr 0,9
  l 15,=v(catint)
  balr 14,15
  b al90
 al70 equ *
- la 0,outline
+ la 1,outline
  l 15,=v(catstr)
  balr 14,15
- lr 1,6
+ lr 0,9
  l 15,=v(catint)
  balr 14,15
- lr 1,0
  mvi 0(1),c'='
- la 0,1(1)
- lr 1,6
+ la 1,1(1)
+ lr 0,9
  l 15,=v(cathex)
  balr 14,15
 *
 al90 equ *
- la 1,outline
- st 1,spargs
- la 1,outlen
- st 1,spargs+4
- sr 0,1
- st 0,outlen
+ la 0,outlen
+ st 0,spargs+4
+ la 0,outline
+ st 0,spargs
+ sr 1,0
+ st 1,outlen
  la 1,spargs
  l 15,=a(sercom)
  balr 14,15
@@ -239,8 +234,8 @@ dofree ds 0h
  lr 8,0
  ltr 15,15
  bz fr20
- lr 6,8
- la 1,fab1
+ lr 9,8
+ la 0,fab1
  b al70
 fr20 equ *
  l 15,=v(getint)
@@ -248,16 +243,16 @@ fr20 equ *
  lr 7,0
  ltr 15,15
  bz fr30
- lr 6,7
- la 1,fab5
+ lr 9,7
+ la 0,fab5
  b al70
 fr30 equ *
  l 15,=v(skipspc)
  balr 14,15
  tm 0(1),x'ff'
  bz fr35
- lr 6,7
- la 1,alb4
+ lr 9,7
+ la 0,alb4
  b al70
 fr35 equ *
 *
@@ -268,21 +263,20 @@ fr35 equ *
  l 15,=a(freemem)
  balr 14,15
 *
- la 0,outline
- la 1,fab3
+ la 1,outline
+ la 0,fab3
  ltr 15,15
  be fr40
- la 1,fab4
+ la 0,fab4
 fr40 equ *
  l 15,=v(catstr)
  balr 14,15
- lr 1,8
+ lr 0,8
  l 15,=v(cathex)
  balr 14,15
- lr 1,0
  mvi 0(1),c'/'
- la 0,1(1)
- lr 1,7
+ la 1,1(1)
+ lr 0,7
  l 15,=v(catint)
  balr 14,15
  b al90
@@ -362,22 +356,22 @@ mygrow ds 0f
  st 7,8(13)
  lr 13,7
 *
- la 0,grwtorec+4
- la 1,grmsg1
+ la 1,grwtorec+4
+ la 0,grmsg1
  l 15,=v(catstr)
  balr 14,15
- lr 1,8
+ lr 0,8
  l 15,=v(catint)
  balr 14,15
- la 1,grmsg2
+ la 0,grmsg2
  l 15,=v(catstr)
  balr 14,15
- l 1,4(13)
- l 1,24(1)
+ l 8,4(13)
+ l 0,24(8)
  l 15,=v(cathex)
  balr 14,15
- sr 0,1
- sth 0,grwtorec
+ sr 1,1
+ sth 2,grwtorec
  la 1,grwtorec
  wto mf=(e,(1))
  l 13,4(13)
