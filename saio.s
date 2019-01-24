@@ -231,7 +231,7 @@ incsw tm thecsw+4,1
  bc 1,ineof
  tm thecsw+4,16
  bcr 1,4
- b help
+ b helpx
  drop 5
 *
 in2 dc f'0'
@@ -284,7 +284,7 @@ outcsw tm thecsw+4,2
  bc 1,outsns
  tm thecsw+4,16	busy?
  bcr 1,4
- b help
+ b helpx
  ago .puend
 .u390 anop
  l 1,otsubch
@@ -309,7 +309,7 @@ sp30 equ *	status pending
  tm 19(13),12	return if done
  bor 7
  tm thecsw+4,x'e3'	any other error?
- bnz help
+ bnz helpx
  b sp25	go kill some more time
  ago .puend
 .puend anop
@@ -367,11 +367,20 @@ sercom ds 0d
 help equ *
  balr 6,0
  using *,6
+ bal 8,helpy
+ dc y(hlpmsgl)
+helpx equ *
+ balr 6,0
+ using *,6
+ bal 8,helpy
+ dc y(hlpmsgl2)
+helpy equ *
+ balr 6,0
+ using *,6
+ mvc hlpccw+6(2),0(8)
  l 8,workptr
  using work,8
  mvc hlpccw+1(3),=al3(hlpmsg)
- la 5,hlpmsgl
- sth 5,hlpccw+6
  la 5,hlpccw
  mvc svstat(8),thecsw
  sth 3,help1  
@@ -546,8 +555,10 @@ help3 dc c'0123456789abcdef'
 help1 ds 1f
 help2 ds 9c
 hllmsg dc c'bad thing happened'
-hlpmsg dc c'help xxx yyyy'
+hlpmsg dc c'help xxx'
 hlpmsgl equ *-hlpmsg
+ dc c' yyyy'
+hlpmsgl2 equ *-hlpmsg
 svstat ds d
 *
 sysarch dc C'&sysparm'
