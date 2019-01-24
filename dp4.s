@@ -240,7 +240,6 @@ op76 equ *
  lr 1,0
  mvc 0(3,1),=C'   '
  b op90
-do79 mvi cc,c'0'	(ex target)
 *
 * do operation here.
 *
@@ -272,14 +271,14 @@ op80 equ *
  la 2,operand2
  ex 4,extbl(6)	do it!
 do10 equ *
- la 3,3	format/save cc
- bc 5,do50
- la 3,14(3)
+ la 3,c'0'	format/save cc
+ bc 10,do50	branch if cc=0 or c=2
+ la 3,1(3)	otherwise 1,3 make r3 odd
 do50 equ *
- bc 3,do55
- la 3,15(3)
+ bc 12,do55	branch if cc=0 or cc=1
+ la 3,2(3)	otherwise 2,3: bump r3
 do55 equ *
- ex 3,do79	mvi cc,(c'0'|r3)
+ stc 3,cc
  l 15,catproto	=v(pgnttrp) cancel trap
  xr 0,0
  balr 14,15
