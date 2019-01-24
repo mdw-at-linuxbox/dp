@@ -104,10 +104,12 @@ ag95 equ *
 * validate operation and operands
 * also parse operands and make them ready for use
 *
+ la 7,op3len
  l 6,=v(getpacked)
  tm sw,1		-x switch
  bz op10	means select alternate
  l 6,=v(gethexst)	operand conversion
+ sll 7,1
 op10 equ *
  l 1,word1	operation should be 1 char
  l 15,=v(strlen)
@@ -115,48 +117,8 @@ op10 equ *
  c 0,=F'1'
  bz op40
  oi badflag,1
+ b op60
 op40 equ *
- l 1,word2	check for operands way too big
- l 15,=v(strlen)
- balr 14,15
- c 0,=A(op3len)
- bl op42
- oi badflag,64+2
-op42 equ *
- l 1,word3
- l 15,=v(strlen)
- balr 14,15
- c 0,=A(op3len)
- bl op44
- oi badflag,64+4
-op44 equ *
- tm badflag,64
- bnz op55
- oi badflag,6
- l 1,word2	convert word2 -> operand1
- la 0,operand1
- lr 15,6
- balr 14,15
- ltr 15,15
- bnz op50
- c 0,=f'8'
- bh op50
- ni badflag,-3
- st 0,len1
-op50 equ *
- l 1,word3	convert word3 -> operand2
- la 0,operand2
- lr 15,6
- balr 14,15
- ltr 15,15
- bnz op55
- c 0,=f'8'
- bh op55
- ni badflag,-5
- st 0,len2
-op55 equ *
- tm badflag,1
- bnz op60
  l 1,word1	compute operation index
  ic 0,0(1)
  la 1,optbl
@@ -168,6 +130,50 @@ op55 equ *
  bz op60
  oi badflag,1
 op60 equ *
+ l 1,word2	check for operands way too big
+ l 15,=v(strlen)
+ balr 14,15
+ cr 0,7
+ bnh op42
+ oi badflag,64+2
+op42 equ *
+ l 1,word3
+ l 15,=v(strlen)
+ balr 14,15
+ cr 0,7
+ bnh op44
+ oi badflag,64+4
+op44 equ *
+ tm badflag,64
+ bnz op55
+ oi badflag,6
+ la 7,8
+ cli opidx+3,6	extbl==edmk?
+ bne op48	then allow more space
+ la 7,op3len
+op48 equ *
+ l 1,word2	convert word2 -> operand1
+ la 0,operand1
+ lr 15,6
+ balr 14,15
+ ltr 15,15
+ bnz op50
+ cr 0,7
+ bh op50
+ ni badflag,-3
+ st 0,len1
+op50 equ *
+ l 1,word3	convert word3 -> operand2
+ la 0,operand2
+ lr 15,6
+ balr 14,15
+ ltr 15,15
+ bnz op55
+ cr 0,7
+ bh op55
+ ni badflag,-5
+ st 0,len2
+op55 equ *
  tm badflag,X'FF'
  bz op80
 *
@@ -257,19 +263,24 @@ op80 equ *
  l 4,len1	or len-1's together
  st 4,len3
  bctr 4,0
+ cli opidx+3,6	extbl==edmk?
+ be op95	then don't add len2 in
  sll 4,4
  l 5,len2
  bctr 5,0
  ar 4,5
+op95 equ *
  mvc operand3(op3len),operand1
  mvi trapflag+3,255
  lm 15,0,catproto	prepare to trap exceptions
  la 1,trapsave
  balr 14,15
- la 1,operand3
+ xr 1,1
+ la 3,operand3
  la 2,operand2
  ex 4,extbl(6)	do it!
 do10 equ *
+ st 1,saver1
  la 3,c'0'	format/save cc
  bc 10,do50	branch if cc=0 or c=2
  la 3,1(3)	otherwise 1,3 make r3 odd
@@ -340,6 +351,23 @@ do60 equ *
  mvc 0(1,1),cc
  mvi 1(1),0
  la 1,1(1)
+ l 2,saver1
+ ltr 2,2
+ bz pr24
+ la 0,lab10
+ l 15,=V(catstr)
+ balr 14,15
+ mvi 0(1),C'-'
+ la 0,operand3
+ sr 0,2
+ bp pr22
+ mvi 0(1),C'+'
+ lcr 0,0
+pr22 equ *
+ la 1,1(1)
+ l 15,=V(catint)
+ balr 14,15
+pr24 equ *
  tm trapflag+3,255	if an exception
  bo pr50
  mvc 0(lab9len,1),lab9
@@ -648,25 +676,27 @@ catproto dc v(pgnttrp),a(ontrap)
 * table of operations.  will index with
 *  offset from operator found in optbl.
 *
-extbl ap 0(1,1),0(1,2)
- sp 0(1,1),0(1,2)
- mp 0(1,1),0(1,2)
- dp 0(1,1),0(1,2)
- zap 0(1,1),0(1,2)
- cp 0(1,1),0(1,2)
+extbl ap 0(1,3),0(1,2)
+ sp 0(1,3),0(1,2)
+ mp 0(1,3),0(1,2)
+ dp 0(1,3),0(1,2)
+ zap 0(1,3),0(1,2)
+ cp 0(1,3),0(1,2)
+ edmk 0(1,3),0(2)
 * operations.  order must match extbl
-optbl dc c'+-*/=<',X'0'
+optbl dc c'+-*/=<%',X'0'
 *
-lab1 dc C' a1=',X'0'
-lab2 dc C' a2=',X'0'
+lab1 dc C' i1=',X'0'
+lab2 dc C' i2=',X'0'
 lab3 dc C'op=',X'0'
 lab4 dc C' overrun=',X'0'
 lab5 dc C' ex=',X'0'
-lab6 dc C' -> r=',X'0'
+lab6 dc C' -> o=',X'0'
 lab7 dc C' cc=',X'0'
 lab8 dc C' iar=ex+',X'0'
 lab9 dc C' ilc='
 lab9len equ *-lab9
+lab10 dc C' r1=',X'0'
 badinp dc C'record ',X'0'
 badinp2 dc C' is bad, ',X'0'
 badway2 dc C'operand too big, ',X'0'
@@ -709,11 +739,11 @@ len1 ds 1f
 len2 ds 1f
 len3 ds 1f
 guard1 ds 1f
-operand1 ds 20c
+operand1 ds 30c
 guard2 ds 1f
-operand2 ds 20c
+operand2 ds 30c
 guard3 ds 1f
-operand3 ds 20c
+operand3 ds 30c
 guard4 ds 1f
 guardlen equ *-guard1
 op3len equ *-operand3
@@ -725,6 +755,7 @@ excount ds 1f
 countln equ *-counts
 scargs ds 4f
 spargs ds 4f
+saver1 ds 1f
 cc ds 1c
 worklen equ *-work
  end
