@@ -56,18 +56,18 @@ getpacked equ *
 gp10 equ *
  la 1,1(1)
 gp20 equ *
- cli 0(1),C'0'
+ cli 0(1),C'0'	validate digits
  bl gp30
  cli 0(1),C'9'
  bh gp90
  bctr 6,0
  b gp10
 gp30 equ *
- cli 0(1),0
+ cli 0(1),0	and look for terminal null
  bnz gp90
  lcr 6,6
  bz gp90
- la 7,1
+ la 7,1	compute packed length
  or 7,6
  srl 7,1
  la 7,1(7)
@@ -84,28 +84,28 @@ gp40 equ *
  pack 0(2,2),0(2,1)	eat exactly one byte of both.
  la 2,1(2)	leading 0 + one digit of output
  la 1,1(1)	one digit of input
- bctr 6,0
+ bctr 6,0	plus "sign", to overwrite
  bctr 7,0
-gp50 equ *	odd and large, eat an even number of bytes
- pack 0(8,2),0(15,1)
- la 2,7(2)	prepare to overwrite "sign"
- la 1,14(1)	with next piece
+gp50 equ *	odd and large, eat 14 bytes
+ pack 0(8,2),0(15,1)	yielding 7 bytes
+ la 2,7(2)	carefully overwrite sign
+ la 1,14(1)
  s 6,=f'14'
  s 7,=f'7'
  b gp40
 gp70 equ *
- lr 8,7
- bctr 8,0
+ lr 8,7	combine lengths
+ bctr 8,0	for execute
  sll 8,4
  or 8,6
  bctr 8,0
  ex 8,gp95	do final or only unpack
  ar 2,7	point r2 at sign
  bctr 2,0
- ex 5,gp96	fixup sign
- b gp92
+ ex 5,gp96	fixup the final sign
+ b gp92	skip for success
 *
-gp90 mvi 19(4),4	indicate failure
+gp90 mvi 19(4),4	here to indicate failure
 *
 gp92 equ *
  lr 1,13
