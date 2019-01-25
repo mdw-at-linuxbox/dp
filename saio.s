@@ -8,6 +8,7 @@
 *
  entry scards,spunch
  entry pgnttrp,sercom,getspace,freespace
+ entry cons,inunit,otunit
 saio csect
  using psa,0
 *
@@ -235,7 +236,6 @@ incsw tm thecsw+4,1
  drop 5
 *
 in2 dc f'0'
-inunit dc h'12'
 inccw ccw x'2',0,x'20',80
 *
 * write output
@@ -324,7 +324,6 @@ outsns la 2,snsccw
  drop 5
 outccw ccw 1,0,x'20',0
 snsccw ccw 4,sense,x'20',16
-otunit dc h'13'
 sense dc 4f'0'
  cnop 0,4
 *
@@ -551,6 +550,8 @@ pgtpsw dc x'00080000',a(prgint)
 hllccw ccw 9,hllmsg,x'20',l'hllmsg
 hlpccw ccw 9,0,x'20',10
 cons dc xl2'009'
+inunit dc h'12'
+otunit dc h'13'
 help3 dc c'0123456789abcdef'
 help1 ds 1f
 help2 ds 9c
