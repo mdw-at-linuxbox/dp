@@ -1,11 +1,18 @@
 *
 * decimal arithmetic test driver
 *
+* input data form:
+*  operation operand1 operand2 switches
+* operation is a single character, one of +-*/=<%
+*  = is zap, < is cp, % is edmk
+* switches: -x means operands on this line are in hex
+*  (instead of being packed decimal numbers).
+*
 * read in data
-* interpret operation
-* print result, cc.
-* do it again unmasked.
-* if exception, say what.
+* execute operation
+* print results, cc.
+* also trap and report exception if any.
+* when no more data, print summary.
 *
  entry main
 dp4 csect
@@ -374,6 +381,15 @@ pr22 equ *
  l 15,=V(catint)
  balr 14,15
 pr24 equ *
+ tm badflag+1,x'ff'	overflow
+ bz pr40
+ la 0,lab4
+ l 15,=V(catstr)
+ balr 14,15
+ lh 0,badflag
+ l 15,=V(catint)
+ balr 14,15
+pr40 equ *
  tm trapflag+3,255	if an exception
  bo pr50
  mvc 0(lab9len,1),lab9
@@ -387,17 +403,6 @@ pr24 equ *
 pr25 equ *
  mvi 0(1),0
 pr30 equ *
- tm badflag+1,x'ff'	overflow
- bz pr40
- la 0,lab4
- l 15,=V(catstr)
- balr 14,15
- lh 0,badflag
- l 15,=V(catint)
- balr 14,15
-pr40 equ *
- tm trapflag+3,255	exception?
- bo pr50
  la 0,lab5		report intcode
  l 15,=V(catstr)
  balr 14,15
@@ -410,9 +415,6 @@ pr40 equ *
  balr 14,15
  bal 3,getiar
  l 2,=a(extbl)
-* l 3,=x'00ffffff'
-* nr 1,3
-* nr 2,3
  sr 0,2
  bnl pr45
  s 1,=f'3'
@@ -436,7 +438,6 @@ pr50 equ *
 op90 equ *
  la 9,outline	have something to print
  lr 8,1
- mvi 0(1),C' '
  sr 8,9
  b again2
 *
@@ -494,13 +495,14 @@ gl10 equ *
  n 0,=f'3'
  br 3
 *
-* co-routine
+* co-routine does I/O
+*
 * 1. fetch data
-* 2. return with program mask clear.
-* 3. on re-entry, print results.
-* 4. then set program mask, arrange to trap.
-* 5. return.  if a trap occurs, log it.
-* 6. on re-entry, capture and print results.
+* 2. on re-entry, print results.
+*
+* on co-exit: r9=ptr to input (if any) else 0
+* on re-entry: r9=record to print or 0. r8=length of it.
+* on EOF proceeds to true-done.
 *
 setup equ set40
 set10 equ *
@@ -530,17 +532,26 @@ set40 equ *
 * logic to punch results.
 * here,
 *  6=return back to co-routine
-*  9=buffer to print
-*  8=length of it
+*  9=buffer to print (consumed)
+*  8=length of it (consumed)
 *  11=co-routine entry
 * *12=dp4
 * *13=work
+* used internally
+*  0 (calling spunch)
+*  1 temp
+*  2=outcard or outcard+4
+*  3=outcard
+*  10=count (per line)
+*  1 (calling spunch)
+*  15 (calling spunch)
 *
 set70 equ *
  ltr 9,9
  bzr 6
  la 1,spargs
- la 2,outcard
+ la 3,outcard
+ lr 2,3
  st 2,0(1)
 set72 equ *
  mvi outcard,C' '
@@ -551,10 +562,12 @@ set72 equ *
  bnh set75
  lr 10,8
 set75 equ *
- sth 10,outlen
  lr 1,10
  bctr 1,0
  ex 1,set94
+ la 1,0(2,10)
+ sr 1,3
+ sth 1,outlen
 *
 * l 15,=v(sercom)
 * balr 14,15
