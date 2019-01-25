@@ -22,6 +22,16 @@ main equ *
  lr 13,1
  using work,13
  xc counts(countln),counts
+ xc zero(8),zero	zero lineno too
+ mvc scargs(ioprotln),inproto	setup arg lists
+ la 4,scargs	do runtime	for scards,spunch
+ la 3,spargs+12	relocation
+ la 2,4
+ag10 equ *
+ l 5,0(4)
+ ar 5,13
+ st 5,0(4)
+ bxle 4,2,ag10
  mvi fatal,0
 *
 * get an input record, split it up
@@ -33,8 +43,6 @@ again2 equ *
  balr 11,10
  ltr 1,9
  bz again
- mvc scargs(16),inproto
- mvc spargs(16),outproto
  xc badflag,badflag
  xc sw,sw
  l 15,=V(skipspc)
@@ -97,9 +105,6 @@ ag95 equ *
  st 4,sw
  mvi guard1,x'a5'
  mvc guard1+1(guardlen-1),guard1
-*
- mvi outline,C' '
- mvc outline+1(79),outline
 *
 * validate operation and operands
 * also parse operands and make them ready for use
@@ -291,6 +296,7 @@ do55 equ *
  stc 3,cc
  l 15,catproto	=v(pgnttrp) cancel trap
  xr 0,0
+ spm 0	clear program mask along the way
  balr 14,15
  tm trapflag+3,255	count exceptions
  bo do60
@@ -503,8 +509,6 @@ set10 equ *
  st 9,rcount
  la 9,inline
  balr 10,11	switch up with caller
- ltr 9,9
- bz set40
  bal 6,set70	show some results
 set40 equ *
  la 1,scargs	fetch input
@@ -520,16 +524,37 @@ set40 equ *
 * error (EOF?) on input, so finalize
  xr 9,9		indicate no input
  balr 10,11	switch up with caller
- ltr 9,9
- bz done
  bal 6,set70	show any final results
+ b done
 *
 * logic to punch results.
+* here,
+*  6=return back to co-routine
+*  9=buffer to print
+*  8=length of it
+*  11=co-routine entry
+* *12=dp4
+* *13=work
 *
 set70 equ *
+ ltr 9,9
+ bzr 6
  la 1,spargs
- st 9,0(1)
- sth 8,outlen
+ la 2,outcard
+ st 2,0(1)
+set72 equ *
+ mvi outcard,C' '
+ mvc outcard+1(79),outcard
+ la 10,outcard+72
+ sr 10,2
+ cr 10,8
+ bnh set75
+ lr 10,8
+set75 equ *
+ sth 10,outlen
+ lr 1,10
+ bctr 1,0
+ ex 1,set94
 *
 * l 15,=v(sercom)
 * balr 14,15
@@ -538,7 +563,14 @@ set70 equ *
  l 15,=V(spunch)
  balr 14,15
  ltr 15,15
- bzr 6
+ bnz set95
+ la 2,outcard+4
+ ar 9,10
+ sr 8,10
+ bnz set72
+ br 6
+set94 mvc 0(0,2),0(9)
+set95 equ *
  oi fatal,1
 *
 * report summary
@@ -654,7 +686,7 @@ ontrap equ *
  lr 2,1	copy trap'd registers
  la 1,traprest
  mvc 0(72,1),0(2)
- lm 15,0,catproto	prepare to return
+ l 15,catproto	prepare to return
  tm 1(1),8	EC bit set?
  bz ot30
  mvc 4(4,1),=a(do10)	force ret addr
@@ -665,12 +697,11 @@ ot30 equ *
 ot90 equ *
  dc y(0)	should never reach
 *
-inlen dc h'80'
-outlen dc h'80'
-lineno dc f'0'
-zero dc f'0'
-inproto dc a(0,inlen,zero,lineno)
-outproto dc a(0,outlen,zero,lineno)
+** must be continuous (and match scargs/spargs)
+inproto dc a(0,inlen-work,zero-work,lineno-work)
+outproto dc a(0,outlen-work,zero-work,lineno-work)
+ioprotln equ *-inproto
+** end must be contiguous
 catproto dc v(pgnttrp),a(ontrap)
 *
 * table of operations.  will index with
@@ -723,6 +754,8 @@ inline ds cl81
  ds 1f
 outline ds 250c
  ds 1f
+outcard ds 80c
+ ds 1f
 fatal ds 1f
 word1 ds 1f
 word2 ds 1f
@@ -753,8 +786,14 @@ bdcount ds 1f
 opcount ds 1f
 excount ds 1f
 countln equ *-counts
-scargs ds 4f
-spargs ds 4f
+zero ds 1f
+lineno ds 1f	must be immediately after zero
+inlen dc 1h
+outlen dc 1h
+** order must match inproto/outproto
+scargs ds 4f	must be contiguous
+spargs ds 4f	for runtime relocation
+** end order must match
 saver1 ds 1f
 cc ds 1c
 worklen equ *-work
