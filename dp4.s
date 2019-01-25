@@ -159,7 +159,7 @@ op44 equ *
  tm badflag,64
  bnz op55
  oi badflag,6
- la 7,8
+ la 7,16	decimal numbers: 16 bytes at most
  cli opidx+3,6	extbl==edmk?
  bne op48	then allow more space
  la 7,op3len
@@ -763,11 +763,11 @@ ft10 dc C'fatal error, can''t write to punch',X'0'
 work dsect
 dp1save ds 18f
  ds 1f
-inline ds cl81
+inline ds cl181
  ds 1f
-outline ds 250c
+outline ds cl255
  ds 1f
-outcard ds 80c
+outcard ds cl80
  ds 1f
 fatal ds 1f
 word1 ds 1f
@@ -776,7 +776,7 @@ word3 ds 1f
 word4 ds 1f
 sw ds 1f
 badflag ds 1f
-temp ds 81c
+temp ds cl181
 trapflag ds 3f
 trapsave ds 18f
 traprest ds 18f
@@ -785,11 +785,11 @@ len1 ds 1f
 len2 ds 1f
 len3 ds 1f
 guard1 ds 1f
-operand1 ds 30c
+operand1 ds cl40
 guard2 ds 1f
-operand2 ds 30c
+operand2 ds cl40
 guard3 ds 1f
-operand3 ds 30c
+operand3 ds cl40
 guard4 ds 1f
 guardlen equ *-guard1
 op3len equ *-operand3
