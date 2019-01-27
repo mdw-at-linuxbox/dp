@@ -198,7 +198,7 @@ sub gen_rep_card
 	$r->{type} = REP;
 	$r->{address} = $e->{aa};
 	$r->{address} += $q->{offset} if defined($q->{offset});
-	$r->{id} = $e->{type} == 1 ? $e->{id} : $e->{n};
+	$r->{id} = $e->{type} == 1 ? $e->{n} : $e->{id};
 	$r->{data} = $q->{contents};
 	++ $q->{used};
 	return $r;
