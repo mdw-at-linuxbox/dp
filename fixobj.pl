@@ -6,6 +6,8 @@
 # 1. combine TXT records, pack up to 56 bytes.
 # 2. combine RLD records.
 # 3. combine ESD records and fix esd item length, always 16.
+# also, for hercules | simh: need patches, so
+# 4. if fixups, also insert them as REP records, before RLD|END each section.
 #
 
 use common::sense;
@@ -17,22 +19,35 @@ my $physrecl = 80;
 my $iseqflag;
 my $ucflag;
 
+my @fixups;
+
 sub process_opts
 {
 	my @r;
 	my $f;
 	for my $j ( @_ ) {
 		if (defined($f)) {
-			&$f($j);
-			undef $f;
+			if (!&$f($j)) {
+				undef $f;
+			}
 			next;
 		}
 #		if ($j eq "-v") {
 #			++$kflag;
 #			next;
 #		}
-#		if ($j eq "-par") {
-#			$f = sub {
+		if ($j eq "-fix") {
+			my ($x, $y) = undef;
+			$f = sub {
+				my ($a) = @_;
+				if (!$x) {
+					$x = $a;
+					return 1;
+				}
+				if (defined($x)) {
+					$y = create_fixup($x, $a);
+					push @fixups, $y;
+				}
 #				my ($f) = @_;
 #				my @z = split(',', $f);
 #$ncol = $z[0]-1 if $z[0] ne "";
@@ -40,9 +55,10 @@ sub process_opts
 #$vcol = $z[2]-1 if $z[2] ne "";
 #$ccol = $z[3]-1 if $z[3] ne "";
 #$scol = $z[4]-1 if $z[4] ne "";
-#			};
-#			next;
-#		}
+				return undef;
+			};
+			next;
+		}
 		push @r, $j;
 	}
 	return @r;
@@ -53,6 +69,7 @@ ESD   => 0x02C5E2C4,
 TXT   => 0x02e3e7e3,
 RLD   => 0x02d9d3c4,
 END   => 0x02c5d5c4,
+REP   => 0x02d9c5d7,
 };
 # SYM
 # LDT
@@ -135,9 +152,76 @@ sub delete_junk
 	@$list = @z;
 }
 
+sub scan_for_missed_fixups
+{
+	my $r;
+	for my $f ( @fixups ) {
+		++$r if !$f->{used};
+	}
+	return $r;
+}
+
+sub create_fixup
+{
+	my ($w, $c) = @_;
+	my $r = {};
+	my $a;
+	if ($w =~ /(.*)([-+].*)/) {
+		$a = substr($w, substr($w, $-[1], $+[1]-$-[1]));
+		$r->{offset} = 0+substr($w, substr($w, $-[2], $+[2]-$-[2]));
+	} else {
+		$a = $w;
+	}
+	$r->{name} = $a;
+	$r->{contents} = pack("H*",$c);
+	return $r;
+}
+
+sub find_fixups
+{
+	my ($name) = @_;
+	my $lname = lc($name);
+	my @r;
+	for my $f ( @fixups ) {
+		if ($f->{name} ne $lname) {
+			next;
+		}
+		push @r, $f;
+	}
+	return @r;
+}
+
+sub gen_rep_card
+{
+	my ($e, $q) = @_;
+	my $r = {};
+	$r->{type} = REP;
+	$r->{address} = $e->{aa};
+	$r->{address} += $q->{offset} if defined($q->{offset});
+	$r->{id} = $e->{type} == 1 ? $e->{id} : $e->{n};
+	$r->{data} = $q->{contents};
+	++ $q->{used};
+	return $r;
+}
+
+sub fixups_to_rep_cards
+{
+	my (@symbols) = @_;
+	my @r;
+	for my $e (@symbols) {
+		# only SD and LD
+		next unless $e->{type} == 1 || $e->{type} == 2;
+		for my $q ( find_fixups($e->{name})) {
+			push @r, gen_rep_card($e, $q);
+		}
+	}
+	return @r;
+}
+
 sub populate_estbl
 {
 	my ($estbl, $d, $id) = @_;
+	my @r;
 	while (length($d) >= 16) {
 		my ($name, $aa, $n) = unpack("a8NN", $d);
 		my ($type, $alignment);
@@ -168,19 +252,24 @@ sub populate_estbl
 		if (defined($r->{id})) {
 			$estbl->{$r->{id}} = $r;
 		}
+		push @r, $r;
 	}
+	return @r;
 }
 
 sub optimize_records
 {
 	my ($list) = @_;
 	my @z;
+	my @symbols;
 	my $c;
 	my ($outr, $outp, $outfoff);
 	my $estbl;
+	my $did_fixups;
 	delete_junk($list);
 	for my $r ( @$list) {
 		if ($r->{type} == ESD) {
+			$did_fixups = 0;
 			$estbl ||= {};
 			my $d = $r->{data};
 			my $l = length($d);
@@ -188,7 +277,7 @@ sub optimize_records
 				$d .= chr(64) x (16-$l);
 				$l = 16;
 			}
-			populate_estbl($estbl, $d, $r->{id});
+			push @symbols, populate_estbl($estbl, $d, $r->{id});
 			if (defined($c) && ($c->{type} != ESD
 					|| $c->{id} != $r->{id}
 					|| length($c->{data})+$l > $lrecl-16
@@ -260,6 +349,8 @@ sub optimize_records
 						)) {
 					push @z, $c;
 					undef $c;
+					push @z, fixups_to_rep_cards(@symbols) if !$did_fixups;
+					$did_fixups = 1;
 				}
 				$flags &= 254;
 				$rty = ($flags >> 4);
@@ -298,7 +389,9 @@ sub optimize_records
 			$c->{data} .= $d;
 			next;
 		} elsif ($r->{type} == END) {
+			push @z, fixups_to_rep_cards(@symbols) if !$did_fixups;
 			undef $estbl;
+			undef @symbols;
 		}
 		if (defined($c)) {
 			push @z, $c;
@@ -324,6 +417,7 @@ sub format_record
 	if (length($c) < $physrecl) {
 		$c .= chr(64) x ($physrecl-length($c));
 	}
+	if ($r->{type} != REP) {
 	substr($c, 5,3) = substr(pack("N", $r->{address}),1,3)
 		if defined($r->{address});
 	substr($c, 10,2) = pack("n", length($r->{data}))
@@ -332,6 +426,7 @@ sub format_record
 		if defined($r->{id});
 	substr($c, 16, length($r->{data})) = $r->{data}
 		if defined($r->{data});
+	}
 	if ($r->{type} == ESD) {
 	} elsif ($r->{type} == TXT) {
 	} elsif ($r->{type} == RLD) {
@@ -342,6 +437,15 @@ sub format_record
 			if defined($r->{size});
 		substr($c,32,length($r->{comment})) = $r->{comment}
 			if defined($r->{comment});
+	} elsif ($r->{type} == REP) {
+		my $s = ' ' x12;
+		substr($s, 2, 6) = uc(sprintf("%06x", 0xffffff & $r->{address}));
+		substr($s, 10, 2) = uc(sprintf"%02x", 0xff & $r->{id});
+		$s .= uc(unpack("H*", $r->{data}));
+		$s .= ' ' if (length($s) < $physrecl-20);
+print STDERR "Oversize fixup!\n" if length($s) > $physrecl-16;
+		my $s = encode("posix-bc", $s);
+		substr($c, 4, length($s)) = $s;
 	} else {
 		printf STDERR "Program error -- record type %#lx found!\n",
 			$r->{type};
@@ -369,6 +473,8 @@ sub process
 	for my $r ( @r ) {
 		print format_record($r);
 	}
+	my $missed = scan_for_missed_fixups();
+	printf STDERR "Skipped %d fixups\n", $missed if $missed;
 }
 
 @ARGV = process_opts(@ARGV);
