@@ -40,6 +40,10 @@ ag10 equ *
  st 5,0(4)
  bxle 4,2,ag10
  mvi fatal,0
+ la 1,operand3	compute possible bases
+ st 1,r1a31	for when edmk sets r1
+ st 1,r1a24
+ mvi r1a24,r1cc
 *
 * get an input record, split it up
 *
@@ -287,7 +291,7 @@ op95 equ *
  lm 15,0,catproto	prepare to trap exceptions
  la 1,trapsave
  balr 14,15
- xr 1,1
+ l 1,r1proto
  la 3,operand3
  la 2,operand2
  ex 4,extbl(6)	do it!
@@ -303,6 +307,7 @@ do55 equ *
  stc 3,cc
  l 15,catproto	=v(pgnttrp) cancel trap
  xr 0,0
+ xr 1,1
  spm 0	clear program mask along the way
  balr 14,15
  tm trapflag+3,255	count exceptions
@@ -364,14 +369,19 @@ do60 equ *
  mvc 0(1,1),cc
  mvi 1(1),0
  la 1,1(1)
- l 2,saver1
- ltr 2,2
+ l 2,saver1	r1
+ c 2,r1proto
  bz pr24
- la 0,lab10
+ la 0,lab10		if it was altered
  l 15,=V(catstr)
  balr 14,15
+ l 0,r1a24
+ cli saver1,r1cc	a24 does not touch
+ bz pr21		top byte of r1
+ l 0,r1a31
+ s 1,=f'4'
+pr21 equ *
  mvi 0(1),C'-'
- la 0,operand3
  sr 0,2
  bp pr22
  mvi 0(1),C'+'
@@ -438,7 +448,7 @@ pr50 equ *
 op90 equ *
  la 9,outline	have something to print
  lr 8,1
- sr 8,9
+ sr 8,9	get its length
  b again2
 *
 * check guard bytes
@@ -482,6 +492,7 @@ getiar equ *
 * fetch ilc from trapsave,trapflag
 * pass 3=ret addr
 * return: ilc in 0 (should be: 0,2,4,6)
+*
 getilc equ *
  xr 0,0
  tm trapsave+1,8	EC bit set?
@@ -740,7 +751,7 @@ lab7 dc C' cc=',X'0'
 lab8 dc C' iar=ex+',X'0'
 lab9 dc C' ilc='
 lab9len equ *-lab9
-lab10 dc C' r1=',X'0'
+lab10 dc C' r1=(24)',X'0'
 badinp dc C'record ',X'0'
 badinp2 dc C' is bad, ',X'0'
 badway2 dc C'operand too big, ',X'0'
@@ -756,6 +767,8 @@ sum2 dc C' bad record',X'0'
 sum3 dc C' operation',X'0'
 sum4 dc C' exception',X'0'
 ft10 dc C'fatal error, can''t write to punch',X'0'
+r1cc equ x'aa'	r1 canary for edmk
+r1proto dc 0f,al1(r1cc),xl3'555aa5'
  ltorg
 *
 * working storage (impure)
@@ -780,6 +793,8 @@ temp ds cl181
 trapflag ds 3f
 trapsave ds 18f
 traprest ds 18f
+r1a24 ds 1f
+r1a31 ds 1f
 opidx ds 1f
 len1 ds 1f
 len2 ds 1f
